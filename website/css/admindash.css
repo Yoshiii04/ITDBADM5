@@ -1,0 +1,105 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f4f4;
+  color: #2B2D42;
+}
+
+/* Layout */
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  background-color: #1e1e2f;
+  padding: 30px 20px;
+  color: white;
+  flex-shrink: 0;
+  height: 100vh; /* Full viewport height */
+  position: sticky;
+  top: 0;
+  overflow-y: auto; /* Allow sidebar content to scroll if needed */
+}
+
+.sidebar h2 {
+  margin-bottom: 30px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.sidebar ul {
+  list-style: none;
+}
+
+.sidebar ul li {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.sidebar ul li a {
+  text-decoration: none;
+  color: #ccc;
+  font-size: 16px;
+  transition: color 0.2s;
+}
+
+.sidebar ul li a:hover,
+.sidebar ul li a.active {
+  color: white;
+  font-weight: bold;
+}
+
+.sidebar ul li .dropdown {
+  display: none;
+  list-style: none;
+  padding-left: 15px;
+  margin-top: 10px;
+}
+
+.sidebar ul li:hover .dropdown {
+  display: block;
+}
+
+.sidebar ul li .dropdown li a {
+  color: #bbb;
+  font-size: 14px;
+}
+
+.sidebar ul li .dropdown li a:hover {
+  color: white;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: 40px;
+  overflow-y: auto;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .dashboard-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto; /* Allow sidebar to adjust height on mobile */
+    position: static; /* Remove sticky positioning on mobile */
+    padding: 20px;
+  }
+
+  .main-content {
+    padding: 20px;
+  }
+}
