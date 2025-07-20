@@ -46,7 +46,7 @@
 						<div class="col-md-3 col-xs-6">
 							<div class="footer">
 								<h3 class="footer-title">About Us</h3>
-								<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut.</p>
+								<p>By.Tech offers affordable computer peripherals, repairs, and customizable tech builds for every user.</p>
 								<ul class="footer-links">
 									<li><a href="#"><i class="fa fa-map-marker"></i>De La Salle University, Manila</a></li>
 									<li><a href="#"><i class="fa fa-phone"></i>(632) 8634-1111</a></li>
@@ -59,10 +59,10 @@
 							<div class="footer">
 								<h3 class="footer-title">Categories</h3>
 								<ul class="footer-links">
-									<li><a href="#">Keyboards</a></li>
-									<li><a href="#">Headphones</a></li>
-									<li><a href="#">Monitors</a></li>
-									<li><a href="#">Mice</a></li>
+									<li><a href="store.php">Keyboards</a></li>
+									<li><a href="store.php">Headphones</a></li>
+									<li><a href="store.php">Monitors</a></li>
+									<li><a href="store.php">Mice</a></li>
 								</ul>
 							</div>
 						</div>
@@ -73,11 +73,11 @@
 							<div class="footer">
 								<h3 class="footer-title">Information</h3>
 								<ul class="footer-links">
-									<li><a href="#">About Us</a></li>
-									<li><a href="#">Contact Us</a></li>
-									<li><a href="#">Privacy Policy</a></li>
-									<li><a href="#">Orders and Returns</a></li>
-									<li><a href="#">Terms & Conditions</a></li>
+									<li><a href="about.php">About Us</a></li>
+									<li><a href="contact.php">Contact Us</a></li>
+									<li><a href="privacy.php">Privacy Policy</a></li>
+									<li><a href="returns.php">Orders and Returns</a></li>
+									<li><a href="terms.php">Terms & Conditions</a></li>
 								</ul>
 							</div>
 						</div>
@@ -87,9 +87,9 @@
 								<h3 class="footer-title">Service</h3>
 								<ul class="footer-links">
 									<li><a href="#">My Account</a></li>
-									<li><a href="#">View Cart</a></li>
-									<li><a href="#">Wishlist</a></li>
-									<li><a href="#">Track My Order</a></li>
+									<li><a href="cart.php">View Cart</a></li>
+									<li><a href="wishlist.php">Wishlist</a></li>
+									<li><a href="orderhistory.php">Track My Order</a></li>
 									<li><a href="service.php">Help</a></li>
 								</ul>
 							</div>
