@@ -1,3 +1,17 @@
+<?php
+// set your database settings here
+$servername = "localhost";
+$username = "root";
+$password = "";
+$database = "user_database";
+
+$conn = new mysqli($servername, $username, $password, $database);
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 	<head>
@@ -66,7 +80,7 @@
 							</div>
 							<div class="shop-body">
 								<h3>Keyboard<br>Collection</h3>
-								<a href="store.php" class="cta-btn">Shop now <i class="fa fa-arrow-circle-right"></i></a>
+								<a href="#" class="cta-btn">Shop now <i class="fa fa-arrow-circle-right"></i></a>
 							</div>
 						</div>
 					</div>
@@ -80,7 +94,7 @@
 							</div>
 							<div class="shop-body">
 								<h3>Headphone<br>Collection</h3>
-								<a href="store.php" class="cta-btn">Shop now <i class="fa fa-arrow-circle-right"></i></a>
+								<a href="#" class="cta-btn">Shop now <i class="fa fa-arrow-circle-right"></i></a>
 							</div>
 						</div>
 					</div>
@@ -94,7 +108,7 @@
 							</div>
 							<div class="shop-body">
 								<h3>Monitor<br>Collection</h3>
-								<a href="store.php" class="cta-btn">Shop now <i class="fa fa-arrow-circle-right"></i></a>
+								<a href="#" class="cta-btn">Shop now <i class="fa fa-arrow-circle-right"></i></a>
 							</div>
 						</div>
 					</div>
@@ -108,7 +122,7 @@
 							</div>
 							<div class="shop-body">
 								<h3>Mouse<br>Collection</h3>
-								<a href="store.php" class="cta-btn">Shop now <i class="fa fa-arrow-circle-right"></i></a>
+								<a href="#" class="cta-btn">Shop now <i class="fa fa-arrow-circle-right"></i></a>
 							</div>
 						</div>
 					</div>
