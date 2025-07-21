@@ -1,9 +1,5 @@
-<!-- ADMIN DASHBOARD ORDER VIEW PAGE -->
-
 <?php
-
-
-// Simulate order details (you can later fetch using $_GET['id'])
+// Simulated order details
 $order = [
   'order_id' => '#1001',
   'customer' => 'Juan Dela Cruz',
@@ -16,6 +12,27 @@ $order = [
     ['name' => 'Mouse Pad XL', 'qty' => 1, 'price' => 500.00],
   ]
 ];
+
+// Currency settings
+$currency = isset($_GET['currency']) ? $_GET['currency'] : 'PHP';
+
+$exchangeRates = [
+  'PHP' => 1.00,
+  'USD' => 0.0182,
+  'KRW' => 23.57
+];
+
+$symbols = [
+  'PHP' => '₱',
+  'USD' => '$',
+  'KRW' => '₩'
+];
+
+$rate = $exchangeRates[$currency] ?? 1.00;
+$symbol = $symbols[$currency] ?? '₱';
+
+// Recalculate total for display
+$convertedTotal = $order['total'] * $rate;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -32,61 +49,74 @@ $order = [
   <link rel="stylesheet" href="css/admindash.css" />
 </head>
 <body>
-     <?php $currentPage = basename($_SERVER['PHP_SELF']); ?>
-  <div class="dashboard-container">
-    <!-- Sidebar -->
-    <?php include 'adminsidebar.php'; ?>
+<?php $currentPage = basename($_SERVER['PHP_SELF']); ?>
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <?php include 'adminsidebar.php'; ?>
 
-    <!-- Main Content -->
-    <div class="main-content">
-      <h1>Order Details</h1>
+  <!-- Main Content -->
+  <div class="main-content">
+    <h1>Order Details</h1>
 
-      <div class="card">
-        <div class="card-body">
-          <h4 class="card-title mb-3"><?= $order['order_id'] ?> - <?= $order['customer'] ?></h4>
-          <p><strong>Email:</strong> <?= $order['email'] ?></p>
-          <p><strong>Date:</strong> <?= $order['date'] ?></p>
-          <p><strong>Status:</strong> 
-            <span class="badge badge-success"><?= $order['status'] ?></span>
-          </p>
+    <!-- Currency Selector -->
+    <form method="GET" class="form-inline mb-3">
+      <label class="mr-2" for="currency">Currency:</label>
+      <select class="form-control mr-2" name="currency" id="currency">
+        <option value="PHP" <?= $currency == 'PHP' ? 'selected' : '' ?>>PHP (₱)</option>
+        <option value="USD" <?= $currency == 'USD' ? 'selected' : '' ?>>USD ($)</option>
+        <option value="KRW" <?= $currency == 'KRW' ? 'selected' : '' ?>>KRW (₩)</option>
+      </select>
+      <button class="btn btn-secondary" type="submit">Convert</button>
+    </form>
 
-          <hr>
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title mb-3"><?= $order['order_id'] ?> - <?= $order['customer'] ?></h4>
+        <p><strong>Email:</strong> <?= $order['email'] ?></p>
+        <p><strong>Date:</strong> <?= $order['date'] ?></p>
+        <p><strong>Status:</strong> 
+          <span class="badge badge-success"><?= $order['status'] ?></span>
+        </p>
 
-          <h5>Items:</h5>
-          <table class="table table-bordered mt-3">
-            <thead class="thead-light">
+        <hr>
+
+        <h5>Items:</h5>
+        <table class="table table-bordered mt-3">
+          <thead class="thead-light">
+            <tr>
+              <th>Product</th>
+              <th>Quantity</th>
+              <th>Price (<?= $symbol ?>)</th>
+              <th>Subtotal (<?= $symbol ?>)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($order['items'] as $item): ?>
               <tr>
-                <th>Product</th>
-                <th>Quantity</th>
-                <th>Price (₱)</th>
-                <th>Subtotal (₱)</th>
+                <td><?= $item['name'] ?></td>
+                <td><?= $item['qty'] ?></td>
+                <td><?= $symbol . number_format($item['price'] * $rate, 2) ?></td>
+                <td><?= $symbol . number_format($item['qty'] * $item['price'] * $rate, 2) ?></td>
               </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($order['items'] as $item): ?>
-                <tr>
-                  <td><?= $item['name'] ?></td>
-                  <td><?= $item['qty'] ?></td>
-                  <td><?= number_format($item['price'], 2) ?></td>
-                  <td><?= number_format($item['qty'] * $item['price'], 2) ?></td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
 
-          <div class="text-right">
-            <h5><strong>Total:</strong> ₱<?= number_format($order['total'], 2) ?></h5>
-          </div>
+        <div class="text-right">
+          <h5><strong>Total:</strong> <?= $symbol . number_format($convertedTotal, 2) ?></h5>
         </div>
       </div>
-
-      <a href="order.php" class="btn btn-secondary mt-4"><i class="fas fa-arrow-left"></i> Back to Orders</a>
     </div>
-  </div>
 
-  <!-- Scripts -->
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <a href="order.php?currency=<?= urlencode($currency) ?>" class="btn btn-secondary mt-4">
+      <i class="fas fa-arrow-left"></i> Back to Orders
+    </a>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
