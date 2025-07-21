@@ -1,13 +1,28 @@
 <?php
+// MySQL connection
+$servername = "localhost";
+$username = "root";
+$password = "";
+$database = "online_store";
+
+$conn = new mysqli($servername, $username, $password, $database);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
 // Get selected currency from dropdown
 $currency = isset($_GET['currency']) ? $_GET['currency'] : 'PHP';
 
-// Hardcoded exchange rates (1 PHP = ?)
-$exchangeRates = [
-    'PHP' => 1.00,
-    'USD' => 0.0182,
-    'KRW' => 23.57
-];
+// Get exchange rate from database
+$rate = 1.00;
+if ($currency !== 'PHP') {
+    $stmt = $conn->prepare("SELECT exchange_rate FROM currencies WHERE currency_code = ?");
+    $stmt->bind_param("s", $currency);
+    $stmt->execute();
+    $stmt->bind_result($rate);
+    $stmt->fetch();
+    $stmt->close();
+}
 
 // Currency symbols
 $symbols = [
@@ -15,8 +30,6 @@ $symbols = [
     'USD' => '$',
     'KRW' => '₩'
 ];
-
-$rate = $exchangeRates[$currency] ?? 1.00;
 $symbol = $symbols[$currency] ?? '₱';
 ?>
 <!DOCTYPE html>
@@ -66,7 +79,7 @@ $symbol = $symbols[$currency] ?? '₱';
           </tr>
         </thead>
         <tbody>
-          <!-- Sample Static Rows with Converted Values -->
+          <!-- Static Rows With Currency Conversion -->
           <tr>
             <td>#1001</td>
             <td>Juan Dela Cruz</td>
@@ -75,6 +88,7 @@ $symbol = $symbols[$currency] ?? '₱';
             <td><?= $symbol . number_format(1499.00 * $rate, 2) ?></td>
             <td>
               <form action="ordersview.php" method="GET">
+                <input type="hidden" name="currency" value="<?= htmlspecialchars($currency) ?>">
                 <button type="submit" class="btn btn-sm btn-primary">View</button>
               </form>
             </td>
@@ -87,6 +101,7 @@ $symbol = $symbols[$currency] ?? '₱';
             <td><?= $symbol . number_format(2350.00 * $rate, 2) ?></td>
             <td>
               <form action="ordersview.php" method="GET">
+                <input type="hidden" name="currency" value="<?= htmlspecialchars($currency) ?>">
                 <button type="submit" class="btn btn-sm btn-primary">View</button>
               </form>
             </td>
@@ -99,6 +114,7 @@ $symbol = $symbols[$currency] ?? '₱';
             <td><?= $symbol . number_format(999.00 * $rate, 2) ?></td>
             <td>
               <form action="ordersview.php" method="GET">
+                <input type="hidden" name="currency" value="<?= htmlspecialchars($currency) ?>">
                 <button type="submit" class="btn btn-sm btn-primary">View</button>
               </form>
             </td>
@@ -108,5 +124,10 @@ $symbol = $symbols[$currency] ?? '₱';
     </div>
   </div>
 </div>
+
+<!-- Optional JS -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
