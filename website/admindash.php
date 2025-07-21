@@ -9,6 +9,16 @@
 <body>
   <?php $currentPage = basename($_SERVER['PHP_SELF']); ?>
 
+  <?php
+session_start();
+
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    echo "Access denied. You are not authorized to view this page.";
+    exit;
+}
+?> <!--  to check if the user is an admin -->
+
+
   <div class="dashboard-container">
    
 

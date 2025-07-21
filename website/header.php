@@ -32,19 +32,27 @@ $currency = $GLOBALS['currency'] ?? 'PHP';
 						</li>
 
 
-						<!-- Account Dropdown -->
-						<li class="dropdown">
-							<a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="true">
-							<i class="fa fa-user-o"></i> My Account <i class="fa fa-caret-down"></i>
-							</a>
-							<ul class="dropdown-menu">
-							<li><a href="login.php">Login</a></li>
-							<li><a href="register.php">Register</a></li>
-							<li><a href="orderhistory.php">Order History</a></li>
-							<li><a href="admindash.php">Admin Panel</a></li>
-							<li><a href="#">Logout</a></li>
-							</ul>
-						</li>
+							<!-- Account Dropdown -->
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="true">
+									<i class="fa fa-user-o"></i> My Account <i class="fa fa-caret-down"></i>
+								</a>
+								<ul class="dropdown-menu">
+									<?php if (!isset($_SESSION['username'])): ?>
+										<li><a href="login.php">Login</a></li>
+										<li><a href="register.php">Register</a></li>
+									<?php else: ?>
+										<li><a href="orderhistory.php">Order History</a></li>
+
+										<?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+											<li><a href="admindash.php">Admin Panel</a></li>
+										<?php endif; ?>
+
+										<li><a href="logout.php">Logout</a></li>
+									<?php endif; ?>
+								</ul>
+							</li>
+
 					</ul>
 				</div>
 			</div>
