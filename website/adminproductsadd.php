@@ -10,7 +10,38 @@
   <link rel="stylesheet" href="css/adminproductsadd.css">
 </head>
 <body>
-  <?php $currentPage = basename($_SERVER['PHP_SELF']); ?>
+  <?php 
+  $currentPage = basename($_SERVER['PHP_SELF']);
+  
+  // Database connection
+  $servername = "localhost";
+  $username = "root";
+  $password = "";
+  $database = "user_database";
+  
+  $conn = new mysqli($servername, $username, $password, $database);
+  
+  if ($conn->connect_error) {
+      die("Connection failed: " . $conn->connect_error);
+  }
+  
+  // Handle form submission
+  if ($_SERVER["REQUEST_METHOD"] == "POST") {
+      $product_name = $_POST['product-name'];
+      $price = $_POST['product-price'];
+      $quantity = $_POST['product-quantity'];
+      $supplier = $_POST['product-supplier'];
+      
+      $sql = "INSERT INTO products (product_name, price, quantity, supplier) 
+              VALUES ('$product_name', $price, $quantity, '$supplier')";
+      
+      if ($conn->query($sql) === TRUE) {
+          $success_message = "Product added successfully!";
+      } else {
+          $error_message = "Error: " . $sql . "<br>" . $conn->error;
+      }
+  }
+  ?>
 
   <!-- Dashboard Layout -->
   <div class="dashboard-container">
@@ -21,8 +52,16 @@
     <!-- Main Content -->
     <div class="main-content">
       <h1>Product Management</h1>
-      <form class="product-form">
+      <form class="product-form" method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
         <h2>Add Product</h2>
+
+        <?php if (isset($success_message)): ?>
+          <div class="alert alert-success"><?php echo $success_message; ?></div>
+        <?php endif; ?>
+        
+        <?php if (isset($error_message)): ?>
+          <div class="alert alert-danger"><?php echo $error_message; ?></div>
+        <?php endif; ?>
 
         <label for="product-name">Product Name</label>
         <input type="text" id="product-name" name="product-name" placeholder="e.g. RGB Gaming Mouse" required>
@@ -30,39 +69,22 @@
         <label for="product-price">Price</label>
         <input type="number" id="product-price" name="product-price" placeholder="e.g. 999.99" step="0.01" required>
 
-        <label for="product-discount">Discount (%)</label>
-        <input type="number" id="product-discount" name="product-discount" placeholder="e.g. 10" min="0" max="100" step="1">
+        <label for="product-quantity">Quantity</label>
+        <input type="number" id="product-quantity" name="product-quantity" placeholder="e.g. 100" required>
 
-        <label for="product-category">Category</label>
-        <select id="product-category" name="product-category" required>
-          <option value="">-- Select Category --</option>
-          <option value="mice">Mice</option>
-          <option value="keyboards">Keyboards</option>
-          <option value="monitors">Monitors</option>
-          <option value="accessories">Accessories</option>
-        </select>
-
-        <label for="product-stock">Stock Status</label>
-        <select id="product-stock" name="product-stock" required>
-          <option value="in-stock">In Stock</option>
-          <option value="out-of-stock">Out of Stock</option>
-        </select>
-
-        <label for="product-images">Upload Images</label>
-        <input type="file" id="product-images" name="product-images" accept="image/*" multiple>
-
-        <label for="product-variations">Variations</label>
-        <input type="text" id="product-variations" name="product-variations" placeholder="e.g. Color: Black, White">
+        <label for="product-supplier">Supplier</label>
+        <input type="text" id="product-supplier" name="product-supplier" placeholder="e.g. Tech Supplier Inc." required>
 
         <div class="btn-group">
           <button type="submit">Save Product</button>
-          <button type="button" class="delete-btn">Delete Product</button>
+          <button type="reset" class="reset-btn">Reset Form</button>
         </div>
       </form>
     </div>
 
-  </div> <!-- CLOSE dashboard-container here -->
-   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  </div>
+  
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
