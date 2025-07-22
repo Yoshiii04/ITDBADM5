@@ -7,7 +7,7 @@
 					<!-- NAV -->
 					<ul class="main-nav nav navbar-nav">
 					<li class="<?= ($currentPage == 'home') ? 'active' : '' ?>"><a href="index.php">Home</a></li>
-					<li class="<?= ($currentPage == 'categories') ? 'active' : '' ?>"><a href="categories.php">Categories</a></li>
+					<li class="<?= ($currentPage == 'categories') ? 'active' : '' ?>"><a href="categoriespage.php">Categories</a></li>
 					<li><a href="store.php?category=keyboards">Keyboards</a></li>
 					<li><a href="store.php?category=headphones">Headphones</a></li>
 					<li><a href="store.php?category=monitors">Monitors</a></li>
