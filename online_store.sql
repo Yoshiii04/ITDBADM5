@@ -16,47 +16,31 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `carts`
+-- Table structure for table `cart`
 --
 
-DROP TABLE IF EXISTS `carts`;
+DROP TABLE IF EXISTS `cart`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `carts` (
-  `cart_id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int DEFAULT NULL,
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`cart_id`),
-  KEY `user_id` (`user_id`),
-  CONSTRAINT `carts_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+CREATE TABLE `cart` (
+  `item_id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `quantity` int NOT NULL,
+  `product_id` int NOT NULL,
+  PRIMARY KEY (`item_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `carts`
+-- Dumping data for table `cart`
 --
 
-LOCK TABLES `carts` WRITE;
-/*!40000 ALTER TABLE `carts` DISABLE KEYS */;
-/*!40000 ALTER TABLE `carts` ENABLE KEYS */;
+LOCK TABLES `cart` WRITE;
+/*!40000 ALTER TABLE `cart` DISABLE KEYS */;
+INSERT INTO `cart` VALUES (2,'Wireless Mouse',599.00,1,5);
+/*!40000 ALTER TABLE `cart` ENABLE KEYS */;
 UNLOCK TABLES;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `trg_update_cart_timestamp` BEFORE INSERT ON `carts` FOR EACH ROW BEGIN
-    SET NEW.created_at = CURRENT_TIMESTAMP;
-END */;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
 -- Table structure for table `categories`
@@ -210,13 +194,12 @@ DROP TABLE IF EXISTS `orders`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `orders` (
   `order_id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
+  `customer_name` varchar(100) NOT NULL,
   `order_date` datetime DEFAULT CURRENT_TIMESTAMP,
-  `status` enum('pending','shipped','cancelled','completed') DEFAULT 'pending',
-  PRIMARY KEY (`order_id`),
-  KEY `user_id` (`user_id`),
-  CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  `status` enum('Pending','Processing','Completed','Cancelled') DEFAULT 'Pending',
+  `total_amount` decimal(10,2) NOT NULL DEFAULT '0.00',
+  PRIMARY KEY (`order_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -225,31 +208,8 @@ CREATE TABLE `orders` (
 
 LOCK TABLES `orders` WRITE;
 /*!40000 ALTER TABLE `orders` DISABLE KEYS */;
-INSERT INTO `orders` VALUES (1,1,'2025-07-20 17:19:42','pending'),(2,1,'2025-07-20 17:19:42','completed'),(3,1,'2025-07-20 17:24:26','pending'),(4,1,'2025-07-20 17:24:26','completed');
 /*!40000 ALTER TABLE `orders` ENABLE KEYS */;
 UNLOCK TABLES;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `trg_replenish_stock_after_cancel` AFTER UPDATE ON `orders` FOR EACH ROW BEGIN
-    IF NEW.status = 'cancelled' AND OLD.status != 'cancelled' THEN
-        UPDATE Products p
-        JOIN OrderItems oi ON p.product_id = oi.product_id
-        SET p.stock = p.stock + oi.quantity
-        WHERE oi.order_id = NEW.order_id;
-    END IF;
-END */;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
 -- Table structure for table `orderstatuslog`
@@ -274,6 +234,38 @@ CREATE TABLE `orderstatuslog` (
 LOCK TABLES `orderstatuslog` WRITE;
 /*!40000 ALTER TABLE `orderstatuslog` DISABLE KEYS */;
 /*!40000 ALTER TABLE `orderstatuslog` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `ordersview`
+--
+
+DROP TABLE IF EXISTS `ordersview`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ordersview` (
+  `view_id` int NOT NULL AUTO_INCREMENT,
+  `order_id` int NOT NULL,
+  `customer_name` varchar(100) NOT NULL,
+  `customer_email` varchar(100) NOT NULL,
+  `order_date` datetime NOT NULL,
+  `status` enum('Pending','Processing','Completed','Cancelled') DEFAULT 'Pending',
+  `product_name` varchar(255) NOT NULL,
+  `quantity` int NOT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `subtotal` decimal(10,2) NOT NULL,
+  PRIMARY KEY (`view_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `ordersview`
+--
+
+LOCK TABLES `ordersview` WRITE;
+/*!40000 ALTER TABLE `ordersview` DISABLE KEYS */;
+INSERT INTO `ordersview` VALUES (1,1001,'Juan Dela Cruz','juan@example.com','2025-07-12 14:30:00','Completed','RGB Gaming Mouse',1,999.00,999.00),(2,1001,'Juan Dela Cruz','juan@example.com','2025-07-12 14:30:00','Completed','Mouse Pad XL',1,500.00,500.00);
+/*!40000 ALTER TABLE `ordersview` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -814,4 +806,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-07-20 17:27:42
+-- Dump completed on 2025-07-23  0:02:30
