@@ -11,13 +11,16 @@ document.addEventListener("DOMContentLoaded", () => {
       body: formData
     })
     .then(res => res.text())
-    .then(data => {
-      data = data.trim(); // clean up any whitespace
-      if (data === "success") {
-        alert("Registration successful.");
+    .then(text => {
+      text = text.trim();
+
+      if (text === "success") {
+        alert("Registration successful!");
         window.location.href = "login.php";
+      } else if (text.startsWith("error:")) {
+        alert("Registration failed: " + text.substring(6).trim());
       } else {
-        alert("Registration failed: " + data);
+        alert("Unexpected server response: " + text);
       }
     })
     .catch(err => {
