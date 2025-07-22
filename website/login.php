@@ -1,57 +1,3 @@
-<?php
-session_start();
-
-// Self reference
-$currentPage = basename($_SERVER['PHP_SELF']);
-
-// Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$database = "online_store";
-
-// Create & check connection
-
-$conn = new mysqli($servername, $username, $password, $database);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-// Handle form submission
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = $_POST['username'];
-    $password = $_POST['password_hash'];
-
-    // Query the database for the user
-    $sql = "SELECT * FROM users WHERE username = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result->num_rows > 0) {
-        $user = $result->fetch_assoc();
-        // Check password
-        if (password_verify($password, $user['password_hash'])) {
-            // Password is correct, start a session
-            $_SESSION['username'] = $username;
-            $_SESSION['user_id'] = $user['id'];
-            header("Location: index.php"); // Redirect to dashboard or home page
-        } else {
-            // Incorrect password
-            $error_message = "Invalid password.";
-        }
-    } else {
-        // Username not found
-        $error_message = "No user found with that username.";
-    }
-    // Close the statement and connection
-    $stmt->close();
-    $conn->close();
-}
-?>
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -61,6 +7,64 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <link type="text/css" rel="stylesheet" href="css/login.css"/>
 </head>
 <body>
+  <?php
+  // login.php
+
+  session_start();
+
+  $servername = "localhost";
+  $username_db = "root";
+  $password_db = "";
+  $database = "online_store";
+
+  $conn = new mysqli($servername, $username_db, $password_db, $database);
+  if ($conn->connect_error) {
+      echo "Database connection failed";
+      exit;
+  }
+
+  if ($_SERVER["REQUEST_METHOD"] === "POST") {
+      $username = $_POST['username'] ?? '';
+      $password = $_POST['password'] ?? '';
+
+      if (!$username || !$password) {
+          echo "Please fill in all fields";
+          exit;
+      }
+
+      // Prepare statement to get user password hash
+      $stmt = $conn->prepare("SELECT password_hash FROM users WHERE username = ?");
+      if (!$stmt) {
+          echo "Database query failed";
+          exit;
+      }
+
+      $stmt->bind_param("s", $username);
+      $stmt->execute();
+
+      $stmt->bind_result($stored_hash);
+      if ($stmt->fetch()) {
+          // Hash the submitted password with SHA-256
+          $hashed_password = hash('sha256', $password);
+  
+          if ($hashed_password === $stored_hash) {
+              $_SESSION['username'] = $username;
+              ob_clean();
+              echo "success";
+          } else {
+              ob_clean();
+              echo "Incorrect password";
+          }
+      } else {
+          ob_clean();
+          echo "User not found";
+      }
+
+      $stmt->close();
+      $conn->close();
+      exit;
+  }
+  ?>
 
   <div class="wrapper">
       <?php if(isset($error_message)): ?>
