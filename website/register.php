@@ -10,12 +10,7 @@
 
   <?php 
     $currentPage = basename($_SERVER['PHP_SELF']);
-
-    // Show errors for debugging (disable in production)
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
-
+    
     $servername = "localhost";
     $username = "root";
     $password = "";
@@ -23,7 +18,6 @@
 
     $conn = new mysqli($servername, $username, $password, $database);
     if ($conn->connect_error) {
-        // Return an error message as plain text
         echo "Connection failed: " . $conn->connect_error;
         exit;
     }
@@ -33,37 +27,39 @@
         $email = $_POST['email'] ?? '';
         $userpassword = $_POST['password'] ?? '';
         $confirmpassword = $_POST['confirmpassword'] ?? '';
-
-        // Basic validation
-        if (!$username || !$email || !$userpassword || !$confirmpassword) {
-            echo "Please fill in all fields.";
-            exit;
-        }
-
-        if ($userpassword !== $confirmpassword) {
-            echo "Passwords do not match.";
-            exit;
-        }
-
-        $password_hash = password_hash($userpassword, PASSWORD_DEFAULT);
-
-        $stmt = $conn->prepare("INSERT INTO users (username, email, role, password_hash) VALUES (?, ?, 'customer', ?)");
-        if (!$stmt) {
-            echo "Database error: " . $conn->error;
-            exit;
-        }
-        $stmt->bind_param("sss", $username, $email, $password_hash);
-
-        if ($stmt->execute()) {
-            echo "success";
-        } else {
-            echo "Registration error: " . $stmt->error;
-        }
-        $stmt->close();
-    } else {
-        echo "Invalid request method.";
+      
+      if (!$username || !$email || !$userpassword || !$confirmpassword) {
+          echo "error: All fields are required";
+          exit;
+      }
+  
+      if ($userpassword !== $confirmpassword) {
+          echo "error: Passwords do not match";
+          exit;
+      }
+  
+      $hashed = password_hash($userpassword, PASSWORD_DEFAULT);
+  
+      $stmt = $conn->prepare("INSERT INTO users (username, email, role, password_hash) VALUES (?, ?, 'customer', ?)");
+      if (!$stmt) {
+          echo "error: Prepare failed";
+          exit;
+      }  
+      
+      $stmt->bind_param("sss", $username, $email, $hashed);
+      
+      if ($stmt->execute()) {
+        ob_clean();
+        echo "success";
+      } else {
+          ob_clean();
+          echo "error: Could not register: " . $stmt->error;
+      }
+  
+      $stmt->close();
+      $conn->close();
+      exit;
     }
-    $conn->close();
   ?>
 
   <div class="wrapper">
