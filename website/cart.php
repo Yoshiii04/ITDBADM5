@@ -1,4 +1,5 @@
 <?php
+
 // MySQL connection
 $servername = "localhost";
 $username = "root";
@@ -10,6 +11,28 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Handle add to cart
+if (isset($_POST['product_id'])) {
+    $product_id = (int)$_POST['product_id'];
+
+    // Check if product already in cart
+    $check = $conn->query("SELECT * FROM cart WHERE product_id = $product_id");
+    if ($check->num_rows > 0) {
+        // If exists, increase quantity
+        $conn->query("UPDATE cart SET quantity = quantity + 1 WHERE product_id = $product_id");
+    } else {
+        // Get product info
+        $product = $conn->query("SELECT * FROM products WHERE product_id = $product_id")->fetch_assoc();
+        if ($product) {
+            $name = $conn->real_escape_string($product['name']);
+            $price = $product['price'];
+            $conn->query("INSERT INTO cart (product_id, name, price, quantity) VALUES ($product_id, '$name', $price, 1)");
+        }
+    }
+    header("Location: cart.php");
+    exit;
+}
+
 // Handle remove item from cart
 if (isset($_POST['remove'])) {
     $item_id = (int)$_POST['remove'];
@@ -17,6 +40,8 @@ if (isset($_POST['remove'])) {
     header("Location: cart.php");
     exit;
 }
+
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -30,24 +55,24 @@ if (isset($_POST['remove'])) {
   </head>
   <body>
     <!-- currency, header, navigation, footer are important in each page if they require a header n a footer -->
-	<?php include 'currency.php'; ?>
-	<?php include 'header.php'; ?>
-	<?php include 'navigation.php'; ?>
+    <?php include 'currency.php'; ?>
+    <?php include 'header.php'; ?>
+    <?php include 'navigation.php'; ?>
 
-	<!-- BREADCRUMB -->
-	<div id="breadcrumb" class="section">
-		<div class="container">
-			<div class="row">
-				<div class="col-md-12">
-					<h3 class="breadcrumb-header">Cart</h3>
-					<ul class="breadcrumb-tree">
-						<li>Cart</li>
-						<li class="active">My Cart</li>
-					</ul>
-				</div>
-			</div>
-		</div>
-	</div>
+    <!-- BREADCRUMB -->
+    <div id="breadcrumb" class="section">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <h3 class="breadcrumb-header">Cart</h3>
+                    <ul class="breadcrumb-tree">
+                        <li>Cart</li>
+                        <li class="active">My Cart</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="container mt-5">
       <h2 class="text-center mb-4">Your Shopping Cart</h2>
@@ -108,10 +133,11 @@ if (isset($_POST['remove'])) {
       </div>
     </div>
 
-	<?php include 'footer.php'; ?>
+    <?php include 'footer.php'; ?>
 
     <script src="js/jquery.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>
+<?php $conn->close(); ?>

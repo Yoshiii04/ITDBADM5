@@ -1,8 +1,9 @@
 <?php
+
 // Database connection
 $servername = "localhost";
 $username = "root";
-$password = "";
+$password = "Raphael#11/30/2002";
 $database = "online_store";
 
 $conn = new mysqli($servername, $username, $password, $database);
@@ -163,7 +164,12 @@ $new_products = $conn->query("
                                                 </div>
                                             </div>
                                             <div class="add-to-cart">
-                                                <button class="add-to-cart-btn"><i class="fa fa-shopping-cart"></i> add to cart</button>
+                                                <form action="cart.php" method="post" style="display:inline;">
+                                                    <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
+                                                    <button type="submit" class="add-to-cart-btn">
+                                                        <i class="fa fa-shopping-cart"></i> add to cart
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
                                     <?php endwhile; ?>
@@ -230,7 +236,12 @@ $new_products = $conn->query("
                                                 </div>
                                             </div>
                                             <div class="add-to-cart">
-                                                <button class="add-to-cart-btn"><i class="fa fa-shopping-cart"></i> add to cart</button>
+                                                <form action="cart.php" method="post" style="display:inline;">
+                                                    <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
+                                                    <button type="submit" class="add-to-cart-btn">
+                                                        <i class="fa fa-shopping-cart"></i> add to cart
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
                                     <?php endwhile; ?>
