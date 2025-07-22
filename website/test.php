@@ -12,7 +12,7 @@ session_start();
 // Simulate a login
 $_SESSION['user_id'] = 1;
 $_SESSION['username'] = 'TestUser';
-$_SESSION['role'] = 'user'; // or 'user'
+$_SESSION['role'] = 'admin'; // or 'user'
 
 header("Location: index.php");
 exit;
