@@ -2342,3 +2342,20 @@ textarea.input {
     margin-top: 10px;
   }
 }
+
+.currency-selector {
+    display: inline-block;
+    margin-left: 15px;
+}
+
+.currency-selector select {
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f8f8f8;
+}
+
+.currency-selector select:focus {
+    outline: none;
+    border-color: #555;
+}
