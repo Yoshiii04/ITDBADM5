@@ -85,7 +85,7 @@
           <input type="checkbox" id="remember">
           <p>Remember me</p>
         </label>
-        <a href="#">Forgot password?</a>
+        <a href="change_password.php" onclick="alert('A password reset link has been sent to your email. Please follow the instructions well.');">Forgot password?</a>
       </div>
       <button type="submit">Log In</button>
       <div class="register">
