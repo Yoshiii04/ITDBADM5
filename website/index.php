@@ -1,5 +1,9 @@
 <?php
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Database connection
 $servername = "localhost";
 $username = "root";
@@ -27,6 +31,31 @@ $new_products = $conn->query("
     JOIN categories c ON p.category_id = c.category_id
     ORDER BY p.product_id DESC LIMIT 8
 ");
+
+// Handle add to cart
+if (isset($_POST['add_to_cart'])) {
+    $product_id = intval($_POST['product_id']);
+    $quantity = isset($_POST['quantity']) ? intval($_POST['quantity']) : 1;
+    
+    // Check if product exists
+    $product = $conn->query("SELECT * FROM products WHERE product_id = $product_id")->fetch_assoc();
+    
+    if ($product) {
+        // Check if product already in cart
+        $check = $conn->query("SELECT * FROM cart WHERE product_id = $product_id");
+        if ($check->num_rows > 0) {
+            // Update quantity if exists
+            $conn->query("UPDATE cart SET quantity = quantity + $quantity WHERE product_id = $product_id");
+        } else {
+            // Add new item to cart
+            $name = $conn->real_escape_string($product['name']);
+            $price = $product['price'];
+            $conn->query("INSERT INTO cart (product_id, name, price, quantity) VALUES ($product_id, '$name', $price, $quantity)");
+        }
+    }
+    header("Location: cart.php");
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -163,14 +192,15 @@ $new_products = $conn->query("
                                                     <a href="product.php?id=<?= $product['product_id'] ?>" class="quick-view"><i class="fa fa-eye"></i><span class="tooltipp">quick view</span></a>
                                                 </div>
                                             </div>
-                                            <div class="add-to-cart">
-                                                <form action="cart.php" method="post" style="display:inline;">
-                                                    <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
-                                                    <button type="submit" class="add-to-cart-btn">
-                                                        <i class="fa fa-shopping-cart"></i> add to cart
-                                                    </button>
-                                                </form>
-                                            </div>
+                                                <div class="add-to-cart">
+                                                    <form method="post" action="store.php">
+                                                        <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
+                                                        <input type="hidden" name="quantity" value="1">
+                                                        <button type="submit" name="add_to_cart" class="add-to-cart-btn">
+                                                            <i class="fa fa-shopping-cart"></i> add to cart
+                                                        </button>
+                                                    </form>
+                                                </div>
                                         </div>
                                     <?php endwhile; ?>
                                 </div>

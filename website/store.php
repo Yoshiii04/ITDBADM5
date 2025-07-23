@@ -11,6 +11,31 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Handle add to cart
+if (isset($_POST['add_to_cart'])) {
+    $product_id = intval($_POST['product_id']);
+    $quantity = isset($_POST['quantity']) ? intval($_POST['quantity']) : 1;
+    
+    // Check if product exists
+    $product = $conn->query("SELECT * FROM products WHERE product_id = $product_id")->fetch_assoc();
+    
+    if ($product) {
+        // Check if product already in cart
+        $check = $conn->query("SELECT * FROM cart WHERE product_id = $product_id");
+        if ($check->num_rows > 0) {
+            // Update quantity if exists
+            $conn->query("UPDATE cart SET quantity = quantity + $quantity WHERE product_id = $product_id");
+        } else {
+            // Add new item to cart
+            $name = $conn->real_escape_string($product['name']);
+            $price = $product['price'];
+            $conn->query("INSERT INTO cart (product_id, name, price, quantity) VALUES ($product_id, '$name', $price, $quantity)");
+        }
+    }
+    header("Location: cart.php");
+    exit;
+}
+
 // Get category filter
 $category_id = isset($_GET['category_id']) ? intval($_GET['category_id']) : 0;
 $category_name = "All Products";
@@ -224,7 +249,14 @@ $categories = $conn->query("
                                             </div>
                                         </div>
                                         <div class="add-to-cart">
-                                            <button class="add-to-cart-btn"><i class="fa fa-shopping-cart"></i> add to cart</button>
+                                            <form method="post" action="store.php">
+                                                <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
+                                                <input type="hidden" name="quantity" value="1">
+                                                <button type="submit" name="add_to_cart" class="add-to-cart-btn">
+                                                    <i class="fa fa-shopping-cart"></i> add to cart
+                                                </button>
+                                            </form>
+                                        </div>
                                         </div>
                                     </div>
                                 </div>

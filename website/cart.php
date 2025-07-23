@@ -33,6 +33,21 @@ if (isset($_POST['product_id'])) {
     exit;
 }
 
+// Handle quantity update
+if (isset($_POST['update_quantity'])) {
+    $item_id = (int)$_POST['item_id'];
+    $quantity = (int)$_POST['quantity'];
+    
+    if ($quantity > 0) {
+        $conn->query("UPDATE cart SET quantity = $quantity WHERE item_id = $item_id");
+    } else {
+        $conn->query("DELETE FROM cart WHERE item_id = $item_id");
+    }
+    header("Location: cart.php");
+    exit;
+}
+
+
 // Handle remove item from cart
 if (isset($_POST['remove'])) {
     $item_id = (int)$_POST['remove'];
@@ -41,6 +56,9 @@ if (isset($_POST['remove'])) {
     exit;
 }
 
+// Get cart items
+$cart_items = $conn->query("SELECT * FROM cart");
+$total = 0;
 
 ?>
 <!DOCTYPE html>
@@ -75,63 +93,73 @@ if (isset($_POST['remove'])) {
     </div>
 
     <div class="container mt-5">
-      <h2 class="text-center mb-4">Your Shopping Cart</h2>
-      <div class="table-responsive">
-        <table class="table table-bordered">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Name</th>
-              <th>Price</th>
-              <th>Quantity</th>
-              <th>Total</th>
-              <th>Remove</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php
-            $result = $conn->query("SELECT * FROM cart");
-            $total = 0;
+        <h2 class="text-center mb-4">Your Shopping Cart</h2>
+        <?php if ($cart_items->num_rows > 0): ?>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Name</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Total</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php while ($row = $cart_items->fetch_assoc()): 
+                            $item_total = $row['price'] * $row['quantity'];
+                            $total += $item_total;
+                        ?>
+                            <tr>
+                                <td><img src='img/product<?= $row['product_id'] ?>.png' alt='Product' width='50' /></td>
+                                <td><?= htmlspecialchars($row['name']) ?></td>
+                                <td><?= displayPrice($row['price']) ?></td>
+                                <td>
+                                    <form method="POST" class="d-flex">
+                                        <input type="hidden" name="item_id" value="<?= $row['item_id'] ?>">
+                                        <input type="number" name="quantity" value="<?= $row['quantity'] ?>" 
+                                               class="form-control" style="width: 70px;">
+                                        <button type="submit" name="update_quantity" class="btn btn-sm btn-primary ml-2">
+                                            <i class="fa fa-refresh"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                                <td><?= displayPrice($item_total) ?></td>
+                                <td>
+                                    <form method="POST">
+                                        <button name="remove" value="<?= $row['item_id'] ?>" class="btn btn-danger btn-sm">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endwhile; ?>
+                    </tbody>
+                </table>
+            </div>
 
-            while ($row = $result->fetch_assoc()) {
-                $name = htmlspecialchars($row['name']);
-                $price = $row['price'];
-                $qty = $row['quantity'];
-                $item_total = $price * $qty;
-                $total += $item_total;
-
-                echo "<tr>
-                    <td><img src='img/product01.png' alt='Product' width='50' /></td>
-                    <td>{$name}</td>
-                    <td>" . displayPrice($price) . "</td>
-                    <td><input type='number' value='{$qty}' class='form-control' style='width: 70px;' disabled></td>
-                    <td>" . displayPrice($item_total) . "</td>
-                    <td>
-                        <form method='POST'>
-                            <button name='remove' value='{$row['item_id']}' class='btn btn-danger btn-sm'>
-                                <i class='fa fa-trash'></i>
-                            </button>
-                        </form>
-                    </td>
-                  </tr>";
-            }
-            ?>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="row justify-content-end">
-        <div class="col-md-4">
-          <h4>Cart Summary</h4>
-          <ul class="list-group">
-            <li class="list-group-item">Subtotal: <strong><?php echo displayPrice($total); ?></strong></li>
-            <li class="list-group-item">Shipping: <strong><?php echo displayPrice(20); ?></strong></li>
-            <li class="list-group-item">Total: <strong><?php echo displayPrice($total + 20); ?></strong></li>
-          </ul>
-          <a href="checkout.php" class="btn btn-success btn-block mt-3">Proceed to Checkout</a>
-        </div>
-      </div>
+            <div class="row justify-content-end">
+                <div class="col-md-4">
+                    <h4>Cart Summary</h4>
+                    <ul class="list-group">
+                        <li class="list-group-item">Subtotal: <strong><?= displayPrice($total) ?></strong></li>
+                        <li class="list-group-item">Shipping: <strong><?= displayPrice(20) ?></strong></li>
+                        <li class="list-group-item">Total: <strong><?= displayPrice($total + 20) ?></strong></li>
+                    </ul>
+                    <form method="POST" action="checkout.php">
+                        <button type="submit" class="btn btn-success btn-block mt-3">Proceed to Checkout</button>
+                    </form>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="alert alert-info text-center">
+                Your cart is empty. <a href="store.php" class="alert-link">Continue shopping</a>
+            </div>
+        <?php endif; ?>
     </div>
+
 
     <?php include 'footer.php'; ?>
 
