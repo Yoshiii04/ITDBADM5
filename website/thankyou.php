@@ -1,3 +1,18 @@
+<?php
+// Clear the cart after successful checkout
+session_start();
+$servername = "localhost";
+$username = "root";
+$password = "";
+$database = "online_store";
+$conn = new mysqli($servername, $username, $password, $database);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+// Empty the cart table (for demo; in real apps, clear only for this user)
+$conn->query("DELETE FROM cart");
+$conn->close();
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,6 +60,9 @@
   </style>
 </head>
 <body>
+  <?php include 'currency.php'; ?>
+  <?php include 'header.php'; ?>
+  <?php include 'navigation.php'; ?>
 
   <div class="thank-you-box">
     <i class="fa fa-check-circle"></i>
@@ -55,8 +73,9 @@
     <a href="index.php" class="btn btn-home btn-lg">Back to Home</a>
   </div>
 
+  <?php include 'footer.php'; ?>
+
   <script src="js/jquery.min.js"></script>
   <script src="js/bootstrap.min.js"></script>
-
 </body>
 </html>
