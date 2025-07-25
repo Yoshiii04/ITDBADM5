@@ -23,11 +23,10 @@
 
     if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $email = $_POST['email'] ?? '';
-        $old_password = $_POST['old_password'] ?? '';
         $new_password = $_POST['new_password'] ?? '';
         $confirm_password = $_POST['confirm_password'] ?? '';
 
-        if (!$email || !$old_password || !$new_password || !$confirm_password) {
+        if (!$email || !$new_password || !$confirm_password) {
             echo "Please fill in all fields.";
             exit;
         }
@@ -37,7 +36,7 @@
             exit;
         }
 
-        $stmt = $conn->prepare("SELECT password_hash FROM users WHERE email = ?");
+        $stmt = $conn->prepare("SELECT email FROM users WHERE email = ?");
         if (!$stmt) {
             echo "Database query failed.";
             exit;
@@ -48,27 +47,21 @@
 
         $stmt->bind_result($stored_hash);
         if ($stmt->fetch()) {
-            $old_hashed = hash('sha256', $old_password);
-            if ($old_hashed !== $stored_hash) {
+            $new_hashed = hash('sha256', $new_password);
+            $stmt->close();
+            $update = $conn->prepare("UPDATE users SET password_hash = ? WHERE email = ?");
+            $update->bind_param("ss", $new_hashed, $email);
+            if ($update->execute()) {
                 ob_clean();
-                echo "Old password is incorrect.";
+                echo "success";
+                exit;
             } else {
-                $new_hashed = hash('sha256', $new_password);
-                $stmt->close();
-                $update = $conn->prepare("UPDATE users SET password_hash = ? WHERE email = ?");
-                $update->bind_param("ss", $new_hashed, $email);
-                if ($update->execute()) {
-                    ob_clean();
-                    echo "success";
-                    exit;
-                } else {
-                    ob_clean();
-                    echo "Failed to update password.";
-                    exit;
-                }
-
-                $update->close();
+                ob_clean();
+                echo "Failed to update password.";
+                exit;
             }
+
+            $update->close();
         } else {
             ob_clean();
             echo "User not found.";
@@ -87,10 +80,6 @@
       <div class="input-field">
         <input type="email" name="email" required>
         <label>Enter your email</label>
-      </div>
-      <div class="input-field">
-        <input type="password" name="old_password" required>
-        <label>Enter your current password</label>
       </div>
       <div class="input-field">
         <input type="password" name="new_password" required>
@@ -130,38 +119,5 @@
     });
   </script>
 </body>
-
-<!-- e.preventDefault();
-
-const username = document.querySelector("input[name='username']").value.trim();
-const password = document.querySelector("input[name='password']").value;
-
-if (!username || !password) {
-  alert("Please fill in both fields.");
-  return;
-}
-
-const formData = new FormData(this);
-
-fetch("login.php", {
-  method: "POST",
-  body: formData
-})
-.then(res => res.text())
-.then(text => {
-  text = text.trim();
-  if (text === "success") {
-    alert("Login successful!");
-    window.location.href = "index.php";
-  } else {
-    alert("Login failed: " + text);
-  }
-})
-.catch(error => {
-  console.error("Error:", error);
-  alert("An error occurred during login.");
-}); -->
-
-
 </html>
 
