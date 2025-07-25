@@ -33,7 +33,7 @@
       }
 
       // Prepare statement to get user password hash
-      $stmt = $conn->prepare("SELECT password_hash FROM users WHERE username = ?");
+      $stmt = $conn->prepare("SELECT password_hash, role FROM users WHERE username = ?");
       if (!$stmt) {
           echo "Database query failed";
           exit;
@@ -42,13 +42,14 @@
       $stmt->bind_param("s", $username);
       $stmt->execute();
 
-      $stmt->bind_result($stored_hash);
+      $stmt->bind_result($stored_hash, $role);
       if ($stmt->fetch()) {
           // Hash the submitted password with SHA-256
           $hashed_password = hash('sha256', $password);
   
           if ($hashed_password === $stored_hash) {
               $_SESSION['username'] = $username;
+              $_SESSION['role'] = $role; // Set role from database
               ob_clean();
               echo "success";
           } else {

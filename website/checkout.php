@@ -6,7 +6,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 
-require_once 'C:\xampp\htdocs\currency.php';
+require_once 'currency.php';
 
 // Database connection
 $servername = "localhost";
@@ -125,6 +125,7 @@ if ($cart_count == 0) {
     <link type="text/css" rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
+
     <!-- HEADER -->
     <?php include 'header.php'; ?>
     <!-- /HEADER -->
