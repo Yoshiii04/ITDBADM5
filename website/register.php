@@ -38,7 +38,7 @@
           exit;
       }
   
-      $hashed = password_hash($userpassword, PASSWORD_DEFAULT);
+      $hashed = hash('sha256', $userpassword);
   
       $stmt = $conn->prepare("INSERT INTO users (username, email, role, password_hash) VALUES (?, ?, 'customer', ?)");
       if (!$stmt) {
