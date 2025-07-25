@@ -1,6 +1,6 @@
-<?php
-$currency = $GLOBALS['currency'] ?? 'PHP';
-?>
+<?php include_once 'currency.php'; ?>
+
+
 
 <!-- HEADER -->
 		<header>
@@ -16,21 +16,21 @@ $currency = $GLOBALS['currency'] ?? 'PHP';
 
 						 <!-- Currency Dropdown -->
 						 <!-- whatever currency is selected, it will be the default currency and it shouldnt show up in the dropdown --> 
+						<!-- Currency Dropdown -->
 						<li class="dropdown">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="true">
-							<i class="fa fa-money"></i> <?php echo $currency; ?> <i class="fa fa-caret-down"></i>
-						</a>
-						<ul class="dropdown-menu">
-							<?php
-							foreach ($rates as $code => $rate) {
-								if ($code !== $currency) {
-								echo "<li><a href='?currency={$code}'>{$code}</a></li>";
-								}
-							}
-							?>
-						</ul>
+							<a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+								<i class="fa fa-money"></i> 
+								<?= htmlspecialchars($currency); ?> 
+								<i class="fa fa-caret-down"></i>
+							</a>
+							<ul class="dropdown-menu">
+								<?php foreach ($rates as $code => $rate): ?>
+									<?php if ($code !== $currency): ?>
+										<li><a href="?currency=<?= urlencode($code); ?>"><?= htmlspecialchars($code); ?></a></li>
+									<?php endif; ?>
+								<?php endforeach; ?>
+							</ul>
 						</li>
-
 
 							<!-- Account Dropdown -->
 							<li class="dropdown">
