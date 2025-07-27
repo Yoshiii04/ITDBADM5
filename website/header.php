@@ -1,4 +1,43 @@
-<?php include_once 'currency.php'; ?>
+<?php 
+
+
+
+include 'config.php';
+include_once 'currency.php';
+
+// Check connection
+if ($conn->connect_error) {
+    error_log("Connection failed: " . $conn->connect_error);
+    $cartData = ['items' => [], 'total' => 0, 'count' => 0]; // Fallback
+} else {
+    function getCartItems($conn) {
+        $sql = "SELECT c.item_id, c.quantity, c.product_id, p.name, p.price, p.stock 
+                FROM cart c 
+                JOIN products p ON c.product_id = p.product_id 
+                WHERE p.stock > 0";
+        $result = $conn->query($sql);
+        $items = [];
+        $total = 0;
+
+        if ($result && $result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $items[] = $row;
+                $total += $row['price'] * $row['quantity'];
+            }
+        } else {
+            error_log("Query failed or no results: " . $conn->error);
+        }
+        return ['items' => $items, 'total' => $total, 'count' => count($items)];
+    }
+
+    // Get cart data
+    $cartData = getCartItems($conn);
+}
+
+// Ensure $cartData is always defined
+$cartData = isset($cartData) ? $cartData : ['items' => [], 'total' => 0, 'count' => 0];
+
+ ?>
 
 
 
@@ -106,46 +145,46 @@
 								<!-- /Wishlist -->
 
 								<!-- Cart -->
-								<div class="dropdown">
-									<a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="true">
-										<i class="fa fa-shopping-cart"></i>
-										<span>Your Cart</span>
-										<div class="qty">3</div>
-									</a>
-									<div class="cart-dropdown">
-										<div class="cart-list">
-											<div class="product-widget">
-												<div class="product-img">
-													<img src="./img/product01.png" alt="">
-												</div>
-												<div class="product-body">
-													<h3 class="product-name"><a href="#">product name goes here</a></h3>
-													<h4 class="product-price"><span class="qty">1x</span><?php echo displayPrice(980); ?></h4>
-												</div>
-												<button class="delete"><i class="fa fa-close"></i></button>
+							
+									<div class="dropdown">
+										<a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="true">
+											<i class="fa fa-shopping-cart"></i>
+											<span>Your Cart</span>
+											<div class="qty"><?php echo $cartData['count']; ?></div>
+										</a>
+										<div class="cart-dropdown">
+											<div class="cart-list">
+												<?php if (!empty($cartData['items']) && is_array($cartData['items'])): ?>
+													<?php foreach ($cartData['items'] as $item): ?>
+														<div class="product-widget">
+															<div class="product-img">
+																<img src="./img/product<?php echo str_pad($item['product_id'], 2, '0', STR_PAD_LEFT); ?>.png" alt="<?php echo htmlspecialchars($item['name']); ?>">
+															</div>
+															<div class="product-body">
+																<h3 class="product-name"><a href="product.php?id=<?php echo $item['product_id']; ?>"><?php echo htmlspecialchars($item['name']); ?></a></h3>
+																<h4 class="product-price"><span class="qty"><?php echo $item['quantity']; ?>x</span><?php echo displayPrice($item['price']); ?></h4>
+															</div>
+															<button class="delete" onclick="removeFromCart(<?php echo $item['item_id']; ?>)"><i class="fa fa-close"></i></button>
+														</div>
+													<?php endforeach; ?>
+												<?php else: ?>
+													<div class="product-widget">
+														<div class="product-body">
+															<h3 class="product-name">Your cart is empty</h3>
+														</div>
+													</div>
+												<?php endif; ?>
 											</div>
-
-											<div class="product-widget">
-												<div class="product-img">
-													<img src="./img/product02.png" alt="">
-												</div>
-												<div class="product-body">
-													<h3 class="product-name"><a href="#">product name goes here</a></h3>
-													<h4 class="product-price"><span class="qty">3x</span><?php echo displayPrice(980); ?></h4>
-												</div>
-												<button class="delete"><i class="fa fa-close"></i></button>
+											<div class="cart-summary">
+												<small><?php echo $cartData['count']; ?> Item(s) selected</small>
+												<h5>SUBTOTAL: <?php echo displayPrice($cartData['total']); ?></h5>
 											</div>
-										</div>
-										<div class="cart-summary">
-											<small>3 Item(s) selected</small>
-											<h5>SUBTOTAL: <?php echo displayPrice(2940); ?></h5>
-										</div>
-										<div class="cart-btns">
-											<a href="cart.php">View Cart</a>
-											<a href="checkout.php">Checkout  <i class="fa fa-arrow-circle-right"></i></a>
+											<div class="cart-btns">
+												<a href="cart.php">View Cart</a>
+												<a href="checkout.php">Checkout <i class="fa fa-arrow-circle-right"></i></a>
+											</div>
 										</div>
 									</div>
-								</div>
 								<!-- /Cart -->
 
 								<!-- Menu Toogle -->
@@ -167,3 +206,32 @@
 			<!-- /MAIN HEADER -->
 		</header>
 		<!-- /HEADER -->
+		 <script>
+
+				function removeFromCart(itemId) {
+			if (confirm('Remove item from cart?')) {
+				fetch('remove_from_cart.php', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/x-www-form-urlencoded',
+					},
+					body: 'item_id=' + itemId
+				})
+				.then(response => response.json())
+				.then(data => {
+					if (data.success) {
+						location.reload();
+					} else {
+						alert('Error removing item: ' + (data.error || 'Unknown error'));
+					}
+				})
+				.catch(error => {
+					console.error('Error:', error);
+					alert('Error removing item');
+				});
+			}
+		}
+
+		 </script>
+
+		

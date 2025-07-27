@@ -20,7 +20,9 @@ if ($conn->connect_error) {
 }
 
 // Start session for user data if needed
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Handle order submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
