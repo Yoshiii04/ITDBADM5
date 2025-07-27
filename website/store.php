@@ -37,30 +37,41 @@ if (isset($_POST['add_to_cart'])) {
 }
 
 // Get category filter
-$category_id = isset($_GET['category_id']) ? intval($_GET['category_id']) : 0;
-$category_name = "All Products";
+$category_names_param = isset($_GET['category_id']) ? explode(',', $_GET['category_id']) : [];
+$category_names = [];
+$category_ids = [];
 
-if ($category_id > 0) {
-    $stmt = $conn->prepare("SELECT name FROM categories WHERE category_id = ?");
-    $stmt->bind_param("i", $category_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows > 0) {
-        $category = $result->fetch_assoc();
-        $category_name = $category['name'];
+if (!empty($category_names_param)) {
+    $lowered_names = array_map('strtolower', $category_names_param);
+
+    $placeholders = implode(',', array_fill(0, count($lowered_names), '?'));
+    $sql = "SELECT * FROM categories WHERE LOWER(name) IN ($placeholders)";
+    $stmt = $conn->prepare($sql);
+
+    if ($stmt) {
+        $stmt->bind_param(str_repeat('s', count($lowered_names)), ...$lowered_names);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($category = $result->fetch_assoc()) {
+            $category_ids[] = $category['category_id'];
+            $category_names[] = $category['name'];
+        }
+        $stmt->close();
     }
-    $stmt->close();
 }
 
+$category_name = empty($category_names) ? "All Products" : implode(', ', $category_names);
+
 // Get products
-if ($category_id > 0) {
+if (!empty($category_ids)) {
+    $placeholders = implode(',', array_fill(0, count($category_ids), '?'));
     $sql = "SELECT p.*, c.name as category_name 
             FROM products p 
             JOIN categories c ON p.category_id = c.category_id
-            WHERE p.category_id = ?
+            WHERE p.category_id IN ($placeholders)
             ORDER BY p.name";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $category_id);
+    $stmt->bind_param(str_repeat('i', count($category_ids)), ...$category_ids);
     $stmt->execute();
     $products = $stmt->get_result();
 } else {
@@ -124,7 +135,7 @@ $categories = $conn->query("
                     <ul class="breadcrumb-tree">
                         <li><a href="index.php">Home</a></li>
                         <li><a href="store.php">All Categories</a></li>
-                        <?php if ($category_id > 0): ?>
+                        <?php if (!empty($category_ids)): ?>
                             <li class="active"><?= htmlspecialchars($category_name) ?></li>
                         <?php endif; ?>
                     </ul>
@@ -142,24 +153,29 @@ $categories = $conn->query("
                 <div id="aside" class="col-md-3">
                     <div class="aside">
                         <h3 class="aside-title">Categories</h3>
-                        <div class="checkbox-filter">
+                        <div class="checkbox-filter" id="category-checkboxes">
+                        <div class="input-checkbox">
+                            <input type="checkbox" id="category-all" data-name="" <?= empty($category_ids) ? 'checked' : '' ?>>
+                            <label for="category-all">
+                                <span></span>
+                                All Products
+                            </label>
+                        </div>
+                        <?php while ($cat = $categories->fetch_assoc()): ?>
+                            <?php $cat_name = strtolower($cat['name']); ?>
                             <div class="input-checkbox">
-                                <input type="checkbox" id="category-all" <?= $category_id == 0 ? 'checked' : '' ?>>
-                                <label for="category-all">
+                                <input type="checkbox"
+                                    id="category-<?= $cat['category_id'] ?>"
+                                    class="category-filter"
+                                    data-name="<?= $cat_name ?>"
+                                    <?= in_array($cat['category_id'], $category_ids) ? 'checked' : '' ?>>
+                                <label for="category-<?= $cat['category_id'] ?>">
                                     <span></span>
-                                    <a href="store.php">All Products</a>
+                                    <?= htmlspecialchars($cat['name']) ?>
+                                    <small>(<?= $cat['product_count'] ?>)</small>
                                 </label>
                             </div>
-                            <?php while($cat = $categories->fetch_assoc()): ?>
-                                <div class="input-checkbox">
-                                    <input type="checkbox" id="category-<?= $cat['category_id'] ?>" <?= $category_id == $cat['category_id'] ? 'checked' : '' ?>>
-                                    <label for="category-<?= $cat['category_id'] ?>">
-                                        <span></span>
-                                        <a href="store.php?category_id=<?= $cat['category_id'] ?>"><?= htmlspecialchars($cat['name']) ?></a>
-                                        <small>(<?= $cat['product_count'] ?>)</small>
-                                    </label>
-                                </div>
-                            <?php endwhile; ?>
+                        <?php endwhile; ?>
                         </div>
                     </div>
 
@@ -298,6 +314,35 @@ $categories = $conn->query("
     <script src="js/nouislider.min.js"></script>
     <script src="js/jquery.zoom.min.js"></script>
     <script src="js/main.js"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const checkboxes = document.querySelectorAll('.category-filter, #category-all');
+
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                // If "All Products" is checked, reload with no category_id filter
+                if (checkbox.id === 'category-all') {
+                    window.location.href = 'store.php';
+                    return;
+                }
+
+                const selected = [];
+                document.querySelectorAll('.category-filter:checked').forEach(cb => {
+                    selected.push(cb.getAttribute('data-name'));
+                });
+
+                if (selected.length > 0) {
+                    const params = new URLSearchParams(window.location.search);
+                    params.set('category_id', selected.join(','));
+                    window.location.href = window.location.pathname + '?' + params.toString();
+                } else {
+                    window.location.href = 'store.php';
+                }
+            });
+        });
+    });
+    </script>
 </body>
 </html>
 <?php $conn->close(); ?>
+
