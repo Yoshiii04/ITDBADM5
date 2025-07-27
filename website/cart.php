@@ -1,12 +1,6 @@
 <?php
+include 'config.php';
 
-// MySQL connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$database = "online_store";
-
-$conn = new mysqli($servername, $username, $password, $database);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
@@ -14,20 +8,47 @@ if ($conn->connect_error) {
 // Handle add to cart
 if (isset($_POST['product_id'])) {
     $product_id = (int)$_POST['product_id'];
+    $session_id = session_id();
+    $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
 
-    // Check if product already in cart
-    $check = $conn->query("SELECT * FROM cart WHERE product_id = $product_id");
-    if ($check->num_rows > 0) {
-        // If exists, increase quantity
-        $conn->query("UPDATE cart SET quantity = quantity + 1 WHERE product_id = $product_id");
-    } else {
-        // Get product info
-        $product = $conn->query("SELECT * FROM products WHERE product_id = $product_id")->fetch_assoc();
-        if ($product) {
-            $name = $conn->real_escape_string($product['name']);
-            $price = $product['price'];
-            $conn->query("INSERT INTO cart (product_id, name, price, quantity) VALUES ($product_id, '$name', $price, 1)");
+    // Fetch product info
+    $sql = "SELECT name, price, stock FROM products WHERE product_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $product_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $product = $result->fetch_assoc();
+    $stmt->close();
+
+    if ($product && $product['stock'] > 0) {
+        // Check if product already in cart
+        if ($user_id) {
+            $sql = "SELECT item_id, quantity FROM cart WHERE product_id = ? AND user_id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ii", $product_id, $user_id);
+        } else {
+            $sql = "SELECT item_id, quantity FROM cart WHERE product_id = ? AND session_id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("is", $product_id, $session_id);
         }
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($result->num_rows > 0) {
+            // Update quantity
+            $row = $result->fetch_assoc();
+            $new_quantity = $row['quantity'] + 1;
+            $sql = "UPDATE cart SET quantity = ? WHERE item_id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ii", $new_quantity, $row['item_id']);
+        } else {
+            // Insert new item
+            $sql = "INSERT INTO cart (product_id, name, price, quantity, user_id, session_id) VALUES (?, ?, ?, ?, ?, ?)";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("isdiiis", $product_id, $product['name'], $product['price'], 1, $user_id, $session_id);
+        }
+        $stmt->execute();
+        $stmt->close();
     }
     header("Location: cart.php");
     exit;
@@ -37,42 +58,99 @@ if (isset($_POST['product_id'])) {
 if (isset($_POST['update_quantity'])) {
     $item_id = (int)$_POST['item_id'];
     $quantity = (int)$_POST['quantity'];
-    
+    $session_id = session_id();
+    $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+
     if ($quantity > 0) {
-        $conn->query("UPDATE cart SET quantity = $quantity WHERE item_id = $item_id");
+        if ($user_id) {
+            $sql = "UPDATE cart SET quantity = ? WHERE item_id = ? AND user_id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("iii", $quantity, $item_id, $user_id);
+        } else {
+            $sql = "UPDATE cart SET quantity = ? WHERE item_id = ? AND session_id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("iis", $quantity, $item_id, $session_id);
+        }
     } else {
-        $conn->query("DELETE FROM cart WHERE item_id = $item_id");
+        if ($user_id) {
+            $sql = "DELETE FROM cart WHERE item_id = ? AND user_id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ii", $item_id, $user_id);
+        } else {
+            $sql = "DELETE FROM cart WHERE item_id = ? AND session_id = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("is", $item_id, $session_id);
+        }
     }
+    $stmt->execute();
+    $stmt->close();
     header("Location: cart.php");
     exit;
 }
 
-
 // Handle remove item from cart
 if (isset($_POST['remove'])) {
     $item_id = (int)$_POST['remove'];
-    $conn->query("DELETE FROM cart WHERE item_id = $item_id");
+    $session_id = session_id();
+    $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+
+    if ($user_id) {
+        $sql = "DELETE FROM cart WHERE item_id = ? AND user_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ii", $item_id, $user_id);
+    } else {
+        $sql = "DELETE FROM cart WHERE item_id = ? AND session_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("is", $item_id, $session_id);
+    }
+    $stmt->execute();
+    $stmt->close();
     header("Location: cart.php");
     exit;
 }
 
 // Get cart items
-$cart_items = $conn->query("SELECT * FROM cart");
+$session_id = session_id();
+$user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+
+if ($user_id) {
+    $sql = "SELECT c.item_id, c.name, c.price, c.quantity, c.product_id, p.image 
+            FROM cart c 
+            JOIN products p ON c.product_id = p.product_id 
+            WHERE c.user_id = ? AND p.stock > 0";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
+} else {
+    $sql = "SELECT c.item_id, c.name, c.price, c.quantity, c.product_id, p.image 
+            FROM cart c 
+            JOIN products p ON c.product_id = p.product_id 
+            WHERE c.session_id = ? AND p.stock > 0";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $session_id);
+}
+$stmt->execute();
+$result = $stmt->get_result();
+$cart_items = [];
 $total = 0;
 
+while ($row = $result->fetch_assoc()) {
+    $cart_items[] = $row;
+    $total += $row['price'] * $row['quantity'];
+}
+$stmt->close();
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shopping Cart</title>
-    <link rel="stylesheet" href="css/bootstrap.min.css" />
-    <link rel="stylesheet" href="css/font-awesome.min.css" />
-    <link rel="stylesheet" href="css/style.css" />
-  </head>
-  <body>
-    <!-- currency, header, navigation, footer are important in each page if they require a header n a footer -->
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
     <?php include 'currency.php'; ?>
     <?php include 'header.php'; ?>
     <?php include 'navigation.php'; ?>
@@ -84,7 +162,7 @@ $total = 0;
                 <div class="col-md-12">
                     <h3 class="breadcrumb-header">Cart</h3>
                     <ul class="breadcrumb-tree">
-                        <li>Cart</li>
+                        <li><a href="index.php">Home</a></li>
                         <li class="active">My Cart</li>
                     </ul>
                 </div>
@@ -94,7 +172,7 @@ $total = 0;
 
     <div class="container mt-5">
         <h2 class="text-center mb-4">Your Shopping Cart</h2>
-        <?php if ($cart_items->num_rows > 0): ?>
+        <?php if (!empty($cart_items)): ?>
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead>
@@ -108,34 +186,39 @@ $total = 0;
                         </tr>
                     </thead>
                     <tbody>
-                        <?php while ($row = $cart_items->fetch_assoc()): 
+                        <?php foreach ($cart_items as $row): 
                             $item_total = $row['price'] * $row['quantity'];
-                            $total += $item_total;
                         ?>
                             <tr>
-                                <td><img src="./img/product<?php echo str_pad($item['product_id'], 2, '0', STR_PAD_LEFT); ?>.png" alt="<?php echo htmlspecialchars($item['name']); ?>" width="50"></td>
-                                <td><?= htmlspecialchars($row['name']) ?></td>
-                                <td><?= displayPrice($row['price']) ?></td>
+                                <td>
+                                    <?php if (isset($row['image']) && $row['image'] && file_exists($row['image'])): ?>
+                                        <img src="<?php echo htmlspecialchars($row['image']); ?>" alt="<?php echo htmlspecialchars($row['name']); ?>" width="50">
+                                    <?php else: ?>
+                                        No Image
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo htmlspecialchars($row['name']); ?></td>
+                                <td><?php echo displayPrice($row['price']); ?></td>
                                 <td>
                                     <form method="POST" class="d-flex">
-                                        <input type="hidden" name="item_id" value="<?= $row['item_id'] ?>">
-                                        <input type="number" name="quantity" value="<?= $row['quantity'] ?>" 
-                                               class="form-control" style="width: 70px;">
+                                        <input type="hidden" name="item_id" value="<?php echo $row['item_id']; ?>">
+                                        <input type="number" name="quantity" value="<?php echo $row['quantity']; ?>" 
+                                               class="form-control" style="width: 70px;" min="0">
                                         <button type="submit" name="update_quantity" class="btn btn-sm btn-primary ml-2">
                                             <i class="fa fa-refresh"></i>
                                         </button>
                                     </form>
                                 </td>
-                                <td><?= displayPrice($item_total) ?></td>
+                                <td><?php echo displayPrice($item_total); ?></td>
                                 <td>
                                     <form method="POST">
-                                        <button name="remove" value="<?= $row['item_id'] ?>" class="btn btn-danger btn-sm">
+                                        <button name="remove" value="<?php echo $row['item_id']; ?>" class="btn btn-danger btn-sm">
                                             <i class="fa fa-trash"></i>
                                         </button>
                                     </form>
                                 </td>
                             </tr>
-                        <?php endwhile; ?>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
@@ -144,9 +227,9 @@ $total = 0;
                 <div class="col-md-4">
                     <h4>Cart Summary</h4>
                     <ul class="list-group">
-                        <li class="list-group-item">Subtotal: <strong><?= displayPrice($total) ?></strong></li>
-                        <li class="list-group-item">Shipping: <strong><?= displayPrice(20) ?></strong></li>
-                        <li class="list-group-item">Total: <strong><?= displayPrice($total + 20) ?></strong></li>
+                        <li class="list-group-item">Subtotal: <strong><?php echo displayPrice($total); ?></strong></li>
+                        <li class="list-group-item">Shipping: <strong><?php echo displayPrice(20); ?></strong></li>
+                        <li class="list-group-item">Total: <strong><?php echo displayPrice($total + 20); ?></strong></li>
                     </ul>
                     <form method="POST" action="checkout.php">
                         <button type="submit" class="btn btn-success btn-block mt-3">Proceed to Checkout</button>
@@ -160,12 +243,11 @@ $total = 0;
         <?php endif; ?>
     </div>
 
-
     <?php include 'footer.php'; ?>
 
     <script src="js/jquery.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
     <script src="js/main.js"></script>
-  </body>
+</body>
 </html>
 <?php $conn->close(); ?>

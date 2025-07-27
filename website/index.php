@@ -169,7 +169,11 @@ if (isset($_POST['add_to_cart'])) {
                                         <?php while($product = $featured_products->fetch_assoc()): ?>
                                             <div class="product">
                                                 <div class="product-img">
-                                                    <img src="./img/product<?php echo str_pad($product['product_id'], 2, '0', STR_PAD_LEFT); ?>.png" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                                    <?php $image_path = './img/product' . str_pad($product['product_id'], 2, '0', STR_PAD_LEFT) . '.png'; if (file_exists($image_path)): ?>
+                                            <img src="<?php echo htmlspecialchars($image_path); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                            <?php else: ?>
+                                            No Image
+                                            <?php endif; ?>
                                                     <div class="product-label">
                                                       
                                                     </div>
@@ -248,7 +252,11 @@ if (isset($_POST['add_to_cart'])) {
                                         <?php while($product = $new_products->fetch_assoc()): ?>
                                             <div class="product">
                                                 <div class="product-img">
-                                                    <img src="./img/product<?php echo str_pad($product['product_id'], 2, '0', STR_PAD_LEFT); ?>.png" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                                   <?php $image_path = './img/product' . str_pad($product['product_id'], 2, '0', STR_PAD_LEFT) . '.png'; if (file_exists($image_path)): ?>
+                                            <img src="<?php echo htmlspecialchars($image_path); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                            <?php else: ?>
+                                            No Image
+                                            <?php endif; ?>
                                                     <div class="product-label">
                                                       
                                                     </div>

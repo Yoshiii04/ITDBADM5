@@ -1,7 +1,7 @@
 <aside class="sidebar">
   <h2>Admin Panel</h2>
   <ul>
-    <li><a href="#" class="<?php echo ($currentPage == '#') ? 'active' : ''; ?>">Dashboard</a></li>
+    <li><a href="admindash.php" class="<?php echo ($currentPage == 'admindash.php') ? 'active' : ''; ?>">Dashboard</a></li>
     <li><a href="index.php" class="<?php echo ($currentPage == 'index.php') ? 'active' : ''; ?>">Home</a></li>
     
     <li>
