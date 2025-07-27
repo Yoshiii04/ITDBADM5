@@ -86,9 +86,9 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY name");
             <?php 
                 $category_images = [
                     'Keyboards' => 'product15.png',
-                    'Headphones' => 'product05.png',
+                    'Headphones' => 'product09.png',
                     'Monitors' => 'product02.png',
-                    'Mouse' => 'product09.png'
+                    'Mice' => 'product05.png'
                 ];
 
                 if ($categories->num_rows > 0) {
