@@ -113,7 +113,7 @@ $total = 0;
                             $total += $item_total;
                         ?>
                             <tr>
-                                <td><img src='img/product<?= $row['product_id'] ?>.png' alt='Product' width='50' /></td>
+                                <td><img src="./img/product<?php echo str_pad($item['product_id'], 2, '0', STR_PAD_LEFT); ?>.png" alt="<?php echo htmlspecialchars($item['name']); ?>" width="50"></td>
                                 <td><?= htmlspecialchars($row['name']) ?></td>
                                 <td><?= displayPrice($row['price']) ?></td>
                                 <td>

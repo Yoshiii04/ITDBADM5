@@ -214,59 +214,58 @@ $categories = $conn->query("
 
                     <!-- store products -->
                     <div class="row">
-                        <?php if ($products->num_rows > 0): ?>
-                            <?php while($product = $products->fetch_assoc()): ?>
-                                <div class="col-md-4 col-xs-6">
-                                    <div class="product">
-                                        <div class="product-img">
-                                            <img src="./img/product<?= $product['product_id'] ?>.png" alt="<?= htmlspecialchars($product['name']) ?>">
-                                            <?php if(rand(0,1) == 1): ?>
-                                                <div class="product-label">
-                                                    <span class="sale">-<?= rand(10,30) ?>%</span>
-                                                    <?php if(rand(0,1) == 1): ?>
-                                                        <span class="new">NEW</span>
-                                                    <?php endif; ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="product-body">
-                                            <p class="product-category"><?= htmlspecialchars($product['category_name']) ?></p>
-                                            <h3 class="product-name"><a href="product.php?id=<?= $product['product_id'] ?>"><?= htmlspecialchars($product['name']) ?></a></h3>
-                                            <h4 class="product-price">
-                                                <?= displayPrice($product['price']) ?>
-                                                <?php if(rand(0,1) == 1): ?>
-                                                    <del class="product-old-price"><?= displayPrice($product['price'] * (1 + rand(10,30)/100)) ?></del>
+                    <?php if ($products && $products->num_rows > 0): ?>
+                        <?php while($product = $products->fetch_assoc()): ?>
+                            <div class="col-md-4 col-xs-6">
+                                <div class="product">
+                                    <div class="product-img">
+                                        <img src="./img/product<?php echo str_pad($product['product_id'], 2, '0', STR_PAD_LEFT); ?>.png" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                        <?php if(rand(0,1) == 1): ?>
+                                            <div class="product-label">
+                                                <span class="sale">-<?= rand(10,30) ?>%</span>
+                                                <?php if(rand(0,1) == 1): ?> <!-- new & sale , i dont know why is it randomized? based on who did this lol --> 
+                                                    <span class="new">NEW</span>
                                                 <?php endif; ?>
-                                            </h4>
-                                            <div class="product-rating">
-                                                <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                    <?= $i <= round($product['rating'] ?? 0) ? '<i class="fa fa-star"></i>' : '<i class="fa fa-star-o"></i>' ?>
-                                                <?php endfor; ?>
                                             </div>
-                                            <div class="product-btns">
-                                                <button class="add-to-wishlist"><i class="fa fa-heart-o"></i><span class="tooltipp">add to wishlist</span></button>
-                                                <a href="product.php?id=<?= $product['product_id'] ?>" class="quick-view"><i class="fa fa-eye"></i><span class="tooltipp">quick view</span></a>
-                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="product-body">
+                                        <p class="product-category"><?= htmlspecialchars($product['category_name']) ?></p>
+                                        <h3 class="product-name"><a href="product.php?id=<?= $product['product_id'] ?>"><?= htmlspecialchars($product['name']) ?></a></h3>
+                                        <h4 class="product-price">
+                                            <?= displayPrice($product['price']) ?>
+                                            <?php if(rand(0,1) == 1): ?>
+                                                <del class="product-old-price"><?= displayPrice($product['price'] * (1 + rand(10,30)/100)) ?></del>
+                                            <?php endif; ?>
+                                        </h4>
+                                        <div class="product-rating">
+                                            <?php for ($i = 1; $i <= 5; $i++): ?>
+                                                <?= $i <= round($product['rating'] ?? 0) ? '<i class="fa fa-star"></i>' : '<i class="fa fa-star-o"></i>' ?>
+                                            <?php endfor; ?>
                                         </div>
-                                        <div class="add-to-cart">
-                                            <form method="post" action="store.php">
-                                                <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
-                                                <input type="hidden" name="quantity" value="1">
-                                                <button type="submit" name="add_to_cart" class="add-to-cart-btn">
-                                                    <i class="fa fa-shopping-cart"></i> add to cart
-                                                </button>
-                                            </form>
-                                        </div>
+                                        <div class="product-btns">
+                                            <button class="add-to-wishlist"><i class="fa fa-heart-o"></i><span class="tooltipp">add to wishlist</span></button>
+                                            <a href="product.php?id=<?= $product['product_id'] ?>" class="quick-view"><i class="fa fa-eye"></i><span class="tooltipp">quick view</span></a>
                                         </div>
                                     </div>
+                                    <div class="add-to-cart">
+                                        <form method="post" action="store.php">
+                                            <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
+                                            <input type="hidden" name="quantity" value="1">
+                                            <button type="submit" name="add_to_cart" class="add-to-cart-btn">
+                                                <i class="fa fa-shopping-cart"></i> add to cart
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <div class="col-12">
-                                <p class="text-center">No products found in this category</p>
                             </div>
-                        <?php endif; ?>
-                    </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <div class="col-12">
+                            <p class="text-center">No products found in this category</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
                     <!-- /store products -->
 
                     <!-- store bottom filter -->
