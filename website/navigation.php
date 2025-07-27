@@ -25,10 +25,10 @@ function isCategoryActive($category) {
 					<ul class="main-nav nav navbar-nav">
 					<li class="<?= ($currentPage == 'home') ? 'active' : '' ?>"><a href="index.php">Home</a></li>
 					<li class="<?= ($currentPage == 'categories') ? 'active' : '' ?>"><a href="categoriespage.php">Categories</a></li>
-					<li class="<?= isCategoryActive('keyboards') ?>"><a href="store.php?category_id=keyboards">Keyboards</a></li>
-					<li class="<?= isCategoryActive('headphones') ?>"><a href="store.php?category_id=headphones">Headphones</a></li>
-					<li class="<?= isCategoryActive('monitors') ?>"><a href="store.php?category_id=monitors">Monitors</a></li>
-					<li class="<?= isCategoryActive('mouse') ?>"><a href="store.php?category_id=mouse">Mice</a></li> <!-- Maybe change DB value to 'mice'? -->
+					<li class="<?= isCategoryActive(2) ?>"><a href="store.php?category_id=keyboards">Keyboards</a></li>
+					<li class="<?= isCategoryActive(4) ?>"><a href="store.php?category_id=headphones">Headphones</a></li>
+					<li class="<?= isCategoryActive(3) ?>"><a href="store.php?category_id=monitors">Monitors</a></li>
+					<li class="<?= isCategoryActive(1) ?>"><a href="store.php?category_id=mice">Mice</a></li>
 					</ul>
 					<!-- /NAV -->
 				</div>
