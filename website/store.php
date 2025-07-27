@@ -41,6 +41,7 @@ $category_names_param = isset($_GET['category_id']) ? explode(',', $_GET['catego
 $category_names = [];
 $category_ids = [];
 
+// Fetch category IDs based on names
 if (!empty($category_names_param)) {
     $lowered_names = array_map('strtolower', $category_names_param);
 
@@ -68,6 +69,7 @@ $sort = isset($_GET['sort']) ? intval($_GET['sort']) : 0;
 // Get show option (default: 20)
 $show_options = [20, 50];
 $show_index = isset($_GET['show']) ? intval($_GET['show']) : 0;
+$page = isset($_GET['page']) && intval($_GET['page']) > 0 ? intval($_GET['page']) : 1;
 $show = $show_options[$show_index] ?? 20;
 
 // Set order by clause based on sort option
@@ -88,17 +90,37 @@ switch ($sort) {
 // Get products based on category filter and sort option
 if (!empty($category_ids)) {
     $placeholders = implode(',', array_fill(0, count($category_ids), '?'));
+    $sqlCount = "SELECT COUNT(*) as total 
+                 FROM products 
+                 WHERE category_id IN ($placeholders)";
+    $stmtCount = $conn->prepare($sqlCount);
+    $typesCount = str_repeat('i', count($category_ids));
+    $stmtCount->bind_param($typesCount, ...$category_ids);
+    $stmtCount->execute();
+    $resultCount = $stmtCount->get_result();
+    $totalProducts = $resultCount->fetch_assoc()['total'];
+    $stmtCount->close();
+} else {
+    $resultCount = $conn->query("SELECT COUNT(*) as total FROM products");
+    $totalProducts = $resultCount->fetch_assoc()['total'];
+}
+
+$totalPages = ceil($totalProducts / $show);
+$offset = ($page - 1) * $show;
+
+if (!empty($category_ids)) {
+    $placeholders = implode(',', array_fill(0, count($category_ids), '?'));
     $sql = "SELECT p.*, c.name as category_name 
             FROM products p 
             JOIN categories c ON p.category_id = c.category_id
             WHERE p.category_id IN ($placeholders)
             ORDER BY $order_by
-            LIMIT ?";
+            LIMIT ? OFFSET ?";
     $stmt = $conn->prepare($sql);
 
-    // Bind category IDs plus the limit
-    $types = str_repeat('i', count($category_ids)) . 'i';
-    $params = array_merge($category_ids, [$show]);
+    // Bind category IDs plus the limit and offset
+    $types = str_repeat('i', count($category_ids)) . 'ii';
+    $params = array_merge($category_ids, [$show, $offset]);
 
     $stmt->bind_param($types, ...$params);
     $stmt->execute();
@@ -108,11 +130,12 @@ if (!empty($category_ids)) {
             FROM products p 
             JOIN categories c ON p.category_id = c.category_id
             ORDER BY $order_by
-            LIMIT $show";
-
-    $products = $conn->query($sql);
+            LIMIT ? OFFSET ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('ii', $show, $offset);
+    $stmt->execute();
+    $products = $stmt->get_result();
 }
-
 
 // Get all categories for sidebar
 $categories = $conn->query("
@@ -316,11 +339,22 @@ $categories = $conn->query("
                     <div class="store-filter clearfix">
                         <span class="store-qty">Showing <?= $products->num_rows ?> products</span>
                         <ul class="store-pagination">
-                            <li class="active">1</li>
-                            <li><a href="#">2</a></li>
-                            <li><a href="#">3</a></li>
-                            <li><a href="#">4</a></li>
-                            <li><a href="#"><i class="fa fa-angle-right"></i></a></li>
+                            <?php
+                            $queryParams = $_GET;
+                            for ($i = 1; $i <= $totalPages; $i++) {
+                                $queryParams['page'] = $i;
+                                $url = htmlspecialchars($_SERVER['PHP_SELF'] . '?' . http_build_query($queryParams));
+                                $activeClass = ($i === $page) ? 'active' : '';
+                                echo "<li class=\"$activeClass\"><a href=\"$url\">$i</a></li>";
+                            }
+                            ?>
+                            <?php if ($page < $totalPages): ?>
+                                <?php
+                                $queryParams['page'] = $page + 1;
+                                $nextUrl = htmlspecialchars($_SERVER['PHP_SELF'] . '?' . http_build_query($queryParams));
+                                ?>
+                                <li><a href="<?= $nextUrl ?>"><i class="fa fa-angle-right"></i></a></li>
+                            <?php endif; ?>
                         </ul>
                     </div>
                     <!-- /store bottom filter -->
@@ -372,7 +406,7 @@ $categories = $conn->query("
         });
     });
     </script>
-    
+
     <!-- Sort Refresh Script -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
