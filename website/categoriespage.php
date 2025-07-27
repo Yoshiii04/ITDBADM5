@@ -95,7 +95,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY name");
                     while($category = $categories->fetch_assoc()) {
                         $category_name = $category['name'];
                         $category_slug = strtolower($category_name); // convert to lowercase
-                        $image = isset($category_images[$category_name]) ? $category_images[$category_name] : 'product01.png';
+                        $image = isset($category_images[$category_name]) ? $category_images[$category_name] : 'product05.png';
                         ?>
                         <div class="col-md-3 col-xs-6">
                             <div class="product"> 

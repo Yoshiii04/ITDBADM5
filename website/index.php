@@ -113,7 +113,7 @@ if (isset($_POST['add_to_cart'])) {
                 <div class="col-md-3 col-xs-6">
                     <div class="shop">
                         <div class="shop-img">
-                            <img src="./img/product05.png" alt="Headphones">
+                            <img src="./img/product09.png" alt="Headphones">
                         </div>
                         <div class="shop-body">
                             <h3>Headphone<br>Collection</h3>
@@ -139,7 +139,7 @@ if (isset($_POST['add_to_cart'])) {
                 <div class="col-md-3 col-xs-6">
                     <div class="shop">
                         <div class="shop-img">
-                            <img src="./img/product09.png" alt="Mice">
+                            <img src="./img/product05.png" alt="Mice">
                         </div>
                         <div class="shop-body">
                             <h3>Mouse<br>Collection</h3>
