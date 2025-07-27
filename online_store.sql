@@ -19,7 +19,8 @@
 -- Table structure for table `cart`
 --
 
-DROP TABLE IF EXISTS `cart`;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS cart;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `cart` (
@@ -28,7 +29,10 @@ CREATE TABLE `cart` (
   `price` decimal(10,2) NOT NULL,
   `quantity` int NOT NULL,
   `product_id` int NOT NULL,
-  PRIMARY KEY (`item_id`)
+  `user_id` int NULL,
+  `session_id` varchar(255) NOT NULL,
+  PRIMARY KEY (`item_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -38,7 +42,7 @@ CREATE TABLE `cart` (
 
 LOCK TABLES `cart` WRITE;
 /*!40000 ALTER TABLE `cart` DISABLE KEYS */;
-INSERT INTO `cart` VALUES (2,'Wireless Mouse',599.00,1,5);
+INSERT INTO cart (name, price, quantity, product_id, user_id, session_id) VALUES ('Wireless Mouse', 599.00, 1, 5, NULL, 'test_session_123');
 /*!40000 ALTER TABLE `cart` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -272,20 +276,21 @@ UNLOCK TABLES;
 -- Table structure for table `products`
 --
 
-DROP TABLE IF EXISTS `products`;
+DROP TABLE IF EXISTS products;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `products` (
-  `product_id` int NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
-  `description` text,
-  `price` decimal(10,2) NOT NULL,
-  `category_id` int DEFAULT NULL,
-  `stock` int DEFAULT '0',
-  `rating` decimal(3,2) DEFAULT NULL,
-  PRIMARY KEY (`product_id`),
-  KEY `category_id` (`category_id`),
-  CONSTRAINT `products_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`)
+CREATE TABLE products (
+  product_id INT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  price DECIMAL(10,2) NOT NULL,
+  category_id INT DEFAULT NULL,
+  stock INT DEFAULT 0,
+  image VARCHAR(255) NULL,
+  rating DECIMAL(3,2) DEFAULT NULL,
+  PRIMARY KEY (product_id),
+  KEY category_id (category_id),
+  CONSTRAINT products_ibfk_1 FOREIGN KEY (category_id) REFERENCES categories (category_id)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -295,7 +300,10 @@ CREATE TABLE `products` (
 
 LOCK TABLES `products` WRITE;
 /*!40000 ALTER TABLE `products` DISABLE KEYS */;
-INSERT INTO `products` VALUES (5,'Wireless Mouse','Ergonomic wireless mouse',599.00,1,50,NULL),(6,'Mechanical Keyboard','RGB mechanical keyboard',2999.00,2,20,NULL);
+INSERT INTO products (product_id, name, description, price, category_id, stock, image, rating)
+VALUES 
+(5, 'Wireless Mouse', 'Ergonomic wireless mouse', 599.00, 1, 50, 'img/product05.png', NULL),
+(6, 'Mechanical Keyboard', 'RGB mechanical keyboard', 2999.00, 2, 20, 'img/product06.png', NULL);
 /*!40000 ALTER TABLE `products` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -527,16 +535,17 @@ UNLOCK TABLES;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `AddProduct`(
+CREATE PROCEDURE `AddProduct`(
     IN p_name VARCHAR(255),
     IN p_description TEXT,
     IN p_price DECIMAL(10,2),
     IN p_category_id INT,
-    IN p_stock INT
+    IN p_stock INT,
+    IN p_image VARCHAR(255)
 )
 BEGIN
-    INSERT INTO Products (name, description, price, category_id, stock)
-    VALUES (p_name, p_description, p_price, p_category_id, p_stock);
+    INSERT INTO Products (name, description, price, category_id, stock, image)
+    VALUES (p_name, p_description, p_price, p_category_id, p_stock, p_image);
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -773,6 +782,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateProduct`(
     IN p_product_id INT,
@@ -780,7 +790,8 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `UpdateProduct`(
     IN p_description TEXT,
     IN p_price DECIMAL(10,2),
     IN p_category_id INT,
-    IN p_stock INT
+    IN p_stock INT,
+    IN p_image VARCHAR(255)
 )
 BEGIN
     UPDATE Products
@@ -788,7 +799,8 @@ BEGIN
         description = p_description,
         price = p_price,
         category_id = p_category_id,
-        stock = p_stock
+        stock = p_stock,
+        image = p_image
     WHERE product_id = p_product_id;
 END ;;
 DELIMITER ;

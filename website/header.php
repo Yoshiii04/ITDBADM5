@@ -150,7 +150,7 @@ $cartData = isset($cartData) ? $cartData : ['items' => [], 'total' => 0, 'count'
 							<span>Your Cart</span>
 							<div class="qty"><?php echo $cartData['count']; ?></div>
 						</a>
-						<div class="cart-dropdown">
+						<div class="cart-dropdown">  
 							<div class="cart-list">
 								<?php if (!empty($cartData['items']) && is_array($cartData['items'])): ?>
 									<?php foreach ($cartData['items'] as $item): ?>
