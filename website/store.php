@@ -62,26 +62,57 @@ if (!empty($category_names_param)) {
 
 $category_name = empty($category_names) ? "All Products" : implode(', ', $category_names);
 
-// Get products
+// Get sort option (default: 0 = Popular - by name asc)
+$sort = isset($_GET['sort']) ? intval($_GET['sort']) : 0;
+
+// Get show option (default: 20)
+$show_options = [20, 50];
+$show_index = isset($_GET['show']) ? intval($_GET['show']) : 0;
+$show = $show_options[$show_index] ?? 20;
+
+// Set order by clause based on sort option
+$order_by = 'p.rating DESC'; // default (Popular)
+
+switch ($sort) {
+    case 0:
+        $order_by = 'p.rating DESC'; // Popular
+        break;
+    case 1:
+        $order_by = 'p.price ASC';
+        break;
+    case 2:
+        $order_by = 'p.price DESC';
+        break;
+}
+
+// Get products based on category filter and sort option
 if (!empty($category_ids)) {
     $placeholders = implode(',', array_fill(0, count($category_ids), '?'));
     $sql = "SELECT p.*, c.name as category_name 
             FROM products p 
             JOIN categories c ON p.category_id = c.category_id
             WHERE p.category_id IN ($placeholders)
-            ORDER BY p.name";
+            ORDER BY $order_by
+            LIMIT ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param(str_repeat('i', count($category_ids)), ...$category_ids);
+
+    // Bind category IDs plus the limit
+    $types = str_repeat('i', count($category_ids)) . 'i';
+    $params = array_merge($category_ids, [$show]);
+
+    $stmt->bind_param($types, ...$params);
     $stmt->execute();
     $products = $stmt->get_result();
 } else {
-    $products = $conn->query("
-        SELECT p.*, c.name as category_name 
-        FROM products p 
-        JOIN categories c ON p.category_id = c.category_id
-        ORDER BY p.name
-    ");
+    $sql = "SELECT p.*, c.name as category_name 
+            FROM products p 
+            JOIN categories c ON p.category_id = c.category_id
+            ORDER BY $order_by
+            LIMIT $show";
+
+    $products = $conn->query($sql);
 }
+
 
 // Get all categories for sidebar
 $categories = $conn->query("
@@ -207,24 +238,21 @@ $categories = $conn->query("
                         <div class="store-sort">
                             <label>
                                 Sort By:
-                                <select class="input-select">
-                                    <option value="0">Popular</option>
-                                    <option value="1">Price: Low to High</option>
-                                    <option value="2">Price: High to Low</option>
+                                <select class="input-select" id="sort-select" name="sort">
+                                    <option value="0" <?= $sort === 0 ? 'selected' : '' ?>>Popular</option>
+                                    <option value="1" <?= $sort === 1 ? 'selected' : '' ?>>Price: Low to High</option>
+                                    <option value="2" <?= $sort === 2 ? 'selected' : '' ?>>Price: High to Low</option>
                                 </select>
                             </label>
                             <label>
                                 Show:
-                                <select class="input-select">
-                                    <option value="0">20</option>
-                                    <option value="1">50</option>
+                                <select class="input-select" id="show-select" name="show">
+                                    <option value="0" <?= $show === 20 ? 'selected' : '' ?>>20</option>
+                                    <option value="1" <?= $show === 50 ? 'selected' : '' ?>>50</option>
                                 </select>
                             </label>
                         </div>
-                        <ul class="store-grid">
-                            <li class="active"><i class="fa fa-th"></i></li>
-                            <li><a href="#"><i class="fa fa-th-list"></i></a></li>
-                        </ul>
+                        <!-- remove store grid view for now -->
                     </div>
                     <!-- /store top filter -->
 
@@ -314,6 +342,8 @@ $categories = $conn->query("
     <script src="js/nouislider.min.js"></script>
     <script src="js/jquery.zoom.min.js"></script>
     <script src="js/main.js"></script>
+    
+    <!-- Category Filter Script -->
     <script>
     document.addEventListener("DOMContentLoaded", function () {
         const checkboxes = document.querySelectorAll('.category-filter, #category-all');
@@ -340,6 +370,28 @@ $categories = $conn->query("
                 }
             });
         });
+    });
+    </script>
+    
+    <!-- Sort Refresh Script -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+        const sortSelect = document.getElementById('sort-select');
+        const showSelect = document.getElementById('show-select');
+
+        function updateUrl() {
+            const params = new URLSearchParams(window.location.search);
+
+            params.set('sort', sortSelect.value);
+            params.set('show', showSelect.value);
+
+            // Preserve category filter if any
+            // (already in params, so no change needed)
+            window.location.href = window.location.pathname + '?' + params.toString();
+        }
+
+        sortSelect.addEventListener('change', updateUrl);
+        showSelect.addEventListener('change', updateUrl);
     });
     </script>
 </body>
