@@ -169,39 +169,9 @@ error_log("Cart data: count={$cartData['count']}, total={$cartData['total']}, it
                             <a class="dropdown-toggle" data-toggle="dropdown" aria-expanded="true">
                                 <i class="fa fa-shopping-cart"></i>
                                 <span>Your Cart</span>
-                                <div class="qty"><?php echo $cartData['count']; ?></div>
                             </a>
-                            <div class="cart-dropdown">  
-                                <div class="cart-list">
-                                    <?php if (!empty($cartData['items']) && is_array($cartData['items'])): ?>
-                                        <?php foreach ($cartData['items'] as $item): ?>
-                                            <div class="product-widget">
-                                                <div class="product-img">
-                                                    <?php if (isset($item['image']) && $item['image'] && file_exists($item['image'])): ?>
-                                                        <img src="<?php echo htmlspecialchars($item['image'] . '?v=' . time()); ?>" alt="<?php echo htmlspecialchars($item['name']); ?>" width="50">
-                                                    <?php else: ?>
-                                                        No Image
-                                                    <?php endif; ?>
-                                                </div>
-                                                <div class="product-body">
-                                                    <h3 class="product-name"><a href="product.php?id=<?php echo $item['product_id']; ?>"><?php echo htmlspecialchars($item['name']); ?></a></h3>
-                                                    <h4 class="product-price"><span class="qty"><?php echo $item['quantity']; ?>x</span><?php echo displayPrice($item['price']); ?></h4>
-                                                </div>
-                                                <button class="delete" onclick="removeFromCart(<?php echo $item['item_id']; ?>)"><i class="fa fa-close"></i></button>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <div class="product-widget">
-                                            <div class="product-body">
-                                                <h3 class="product-name">Your cart is empty</h3>
-                                            </div>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="cart-summary">
-                                    <small><?php echo $cartData['count']; ?> Item(s) selected</small>
-                                    <h5>SUBTOTAL: <?php echo displayPrice($cartData['total']); ?></h5>
-                                </div>
+                            <div class="cart-dropdown">
+                                <br>  
                                 <div class="cart-btns">
                                     <a href="cart.php">View Cart</a>
                                     <a href="checkout.php">Checkout <i class="fa fa-arrow-circle-right"></i></a>
