@@ -24,12 +24,12 @@ DROP TABLE IF EXISTS `audit_logs`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `audit_logs` (
   `log_id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int DEFAULT NULL,
-  `role` varchar(50) DEFAULT NULL,
-  `action` varchar(255) DEFAULT NULL,
-  `target_table` varchar(100) DEFAULT NULL,
-  `target_id` int DEFAULT NULL,
-  `timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
+  `table_name` varchar(50) NOT NULL,
+  `action_type` varchar(20) NOT NULL,
+  `record_id` int DEFAULT NULL,
+  `changed_by` varchar(100) DEFAULT NULL,
+  `change_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `details` text,
   PRIMARY KEY (`log_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -242,6 +242,32 @@ LOCK TABLES `orders` WRITE;
 /*!40000 ALTER TABLE `orders` DISABLE KEYS */;
 /*!40000 ALTER TABLE `orders` ENABLE KEYS */;
 UNLOCK TABLES;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `trg_audit_order_update` AFTER UPDATE ON `orders` FOR EACH ROW BEGIN
+  IF OLD.status <> NEW.status THEN
+    INSERT INTO audit_logs (table_name, action_type, record_id, changed_by, details)
+    VALUES (
+      'orders',
+      'UPDATE',
+      OLD.order_id,
+      CURRENT_USER(),
+      CONCAT('Status changed from ', OLD.status, ' to ', NEW.status)
+    );
+  END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
 -- Table structure for table `orderstatuslog`
@@ -345,6 +371,54 @@ DELIMITER ;;
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Error: Stock cannot be negative.';
     END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `trg_audit_product_update` AFTER UPDATE ON `products` FOR EACH ROW BEGIN
+  INSERT INTO audit_logs (table_name, action_type, record_id, changed_by, details)
+  VALUES (
+    'products',
+    'UPDATE',
+    OLD.product_id,
+    CURRENT_USER(), -- or replace with session user if in app code
+    CONCAT('Old: ', OLD.name, ', New: ', NEW.name)
+  );
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `trg_audit_product_delete` AFTER DELETE ON `products` FOR EACH ROW BEGIN
+  INSERT INTO audit_logs (table_name, action_type, record_id, changed_by, details)
+  VALUES (
+    'products',
+    'DELETE',
+    OLD.product_id,
+    CURRENT_USER(),
+    CONCAT('Deleted product: ', OLD.name)
+  );
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -868,4 +942,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-07-28 16:26:52
+-- Dump completed on 2025-07-28 20:58:54
