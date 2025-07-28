@@ -2,3 +2,9 @@
 [28-Jul-2025 17:50:44 Europe/Berlin] PHP Warning:  Undefined array key "" in C:\xampp\htdocs\ITDBADM\website\edit_table.php on line 84
 [28-Jul-2025 17:50:44 Europe/Berlin] Server error in edit_table.php: You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '' at line 1
 [28-Jul-2025 17:51:00 Europe/Berlin] Server error in delete_column.php: You can't delete all columns with ALTER TABLE; use DROP TABLE instead
+[28-Jul-2025 19:38:32 Europe/Berlin] Invalid table name in edit_table.php: current=, new=
+[28-Jul-2025 19:38:36 Europe/Berlin] Invalid table name in edit_table.php: current=, new=
+[28-Jul-2025 19:38:41 Europe/Berlin] Invalid table name in edit_table.php: current=, new=
+[28-Jul-2025 19:38:59 Europe/Berlin] Invalid table name in edit_table.php: current=, new=
+[28-Jul-2025 19:43:51 Europe/Berlin] Invalid table name in edit_table.php: current=, new=
+[28-Jul-2025 19:43:56 Europe/Berlin] Invalid table name in edit_table.php: current=, new=
