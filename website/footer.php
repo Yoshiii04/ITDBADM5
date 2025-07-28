@@ -76,7 +76,7 @@
 									<li><a href="about.php">About Us</a></li>
 									<li><a href="contact.php">Contact Us</a></li>
 									<li><a href="privacy.php">Privacy Policy</a></li>
-									<li><a href="returns.php">Orders and Returns</a></li>
+									<li><a href="returns.php">Orders & Returns</a></li>
 									<li><a href="terms.php">Terms & Conditions</a></li>
 								</ul>
 							</div>
@@ -84,11 +84,9 @@
 
 						<div class="col-md-3 col-xs-6">
 							<div class="footer">
-								<h3 class="footer-title">Service</h3>
+								<h3 class="footer-title">My Account</h3>
 								<ul class="footer-links">
-									<li><a href="#">My Account</a></li>
 									<li><a href="cart.php">View Cart</a></li>
-									<li><a href="wishlist.php">Wishlist</a></li>
 									<li><a href="orderhistory.php">Track My Order</a></li>
 									<li><a href="service.php">Help</a></li>
 								</ul>

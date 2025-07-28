@@ -163,15 +163,6 @@ error_log("Cart data: count={$cartData['count']}, total={$cartData['total']}, it
                 <!-- ACCOUNT -->
                 <div class="col-md-3 clearfix">
                     <div class="header-ctn">
-                        <!-- Wishlist -->
-                        <div>
-                            <a href="wishlist.php">
-                                <i class="fa fa-heart-o"></i>
-                                <span>Your Wishlist</span>
-                                <div class="qty">2</div>
-                            </a>
-                        </div>
-                        <!-- /Wishlist -->
 
                         <!-- Cart -->
                         <div class="dropdown">
