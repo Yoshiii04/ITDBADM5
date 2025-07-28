@@ -1,4 +1,5 @@
 <?php
+session_start(); // note cart.php works and admin panel works but drop down cart doesnt work if this is added
 
 // Database connection
 include 'config.php';
