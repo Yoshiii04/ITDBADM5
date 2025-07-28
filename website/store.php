@@ -286,7 +286,11 @@ $categories = $conn->query("
                             <div class="col-md-4 col-xs-6">
                                 <div class="product">
                                     <div class="product-img">
-                                        <img src="./img/product<?php echo str_pad($product['product_id'], 2, '0', STR_PAD_LEFT); ?>.png" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                        <?php if (isset($product['image']) && $product['image'] && file_exists($product['image'])): ?>
+    <img src="<?php echo htmlspecialchars($product['image'] . '?v=' . time()); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+<?php else: ?>
+    No Image
+<?php endif; ?>
                                         <?php if(rand(0,1) == 1): ?>
                                             <div class="product-label">
                                                 <span class="sale">-<?= rand(10,30) ?>%</span>

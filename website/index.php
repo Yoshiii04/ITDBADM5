@@ -5,16 +5,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$database = "online_store";
-
-$conn = new mysqli($servername, $username, $password, $database);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+include 'config.php';
 
 // Get featured products
 $featured_products = $conn->query("
@@ -169,11 +160,11 @@ if (isset($_POST['add_to_cart'])) {
                                         <?php while($product = $featured_products->fetch_assoc()): ?>
                                             <div class="product">
                                                 <div class="product-img">
-                                                    <?php $image_path = './img/product' . str_pad($product['product_id'], 2, '0', STR_PAD_LEFT) . '.png'; if (file_exists($image_path)): ?>
-                                            <img src="<?php echo htmlspecialchars($image_path); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
-                                            <?php else: ?>
-                                            No Image
-                                            <?php endif; ?>
+                                                    <?php if (isset($product['image']) && $product['image'] && file_exists($product['image'])): ?>
+    <img src="<?php echo htmlspecialchars($product['image'] . '?v=' . time()); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+<?php else: ?>
+    No Image
+<?php endif; ?>
                                                     <div class="product-label">
                                                       
                                                     </div>
@@ -252,11 +243,11 @@ if (isset($_POST['add_to_cart'])) {
                                         <?php while($product = $new_products->fetch_assoc()): ?>
                                             <div class="product">
                                                 <div class="product-img">
-                                                   <?php $image_path = './img/product' . str_pad($product['product_id'], 2, '0', STR_PAD_LEFT) . '.png'; if (file_exists($image_path)): ?>
-                                            <img src="<?php echo htmlspecialchars($image_path); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
-                                            <?php else: ?>
-                                            No Image
-                                            <?php endif; ?>
+                                                  <?php if (isset($product['image']) && $product['image'] && file_exists($product['image'])): ?>
+    <img src="<?php echo htmlspecialchars($product['image'] . '?v=' . time()); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+<?php else: ?>
+    No Image
+<?php endif; ?>
                                                     <div class="product-label">
                                                       
                                                     </div>

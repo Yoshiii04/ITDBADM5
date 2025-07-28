@@ -1,13 +1,8 @@
 <?php
-session_start();
 
 // Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$database = "online_store";
+include 'config.php';
 
-$conn = new mysqli($servername, $username, $password, $database);
 if ($conn->connect_error) {
     error_log("Connection failed: " . $conn->connect_error);
     die("Database connection error. Please try again later.");
