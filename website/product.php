@@ -1,3 +1,94 @@
+<?php
+
+// MySQL connection
+$servername = "localhost";
+$username = "root";
+$password = "";
+$database = "online_store";
+
+$conn = new mysqli($servername, $username, $password, $database);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Get product ID from URL
+$product_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+// Fetch product
+$sql = "SELECT p.*, c.name AS category_name FROM products p 
+        LEFT JOIN categories c ON p.category_id = c.category_id
+        WHERE p.product_id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $product_id);
+$stmt->execute();
+$product = $stmt->get_result()->fetch_assoc();
+
+if (!$product) {
+    echo "Product not found.";
+    exit;
+}
+
+if (isset($_POST['add_to_cart'])) {
+    $product_id = intval($_POST['product_id']);
+    $quantity = max(1, intval($_POST['quantity']));
+    $user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+    $session_id = session_id();
+
+    // Check product exists and is in stock
+    $stmt = $conn->prepare("SELECT * FROM products WHERE product_id = ? AND stock > 0");
+    $stmt->bind_param("i", $product_id);
+    $stmt->execute();
+    $product = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if ($product) {
+        // Check if product already in cart
+        if ($user_id) {
+            $stmt = $conn->prepare("SELECT * FROM cart WHERE product_id = ? AND user_id = ?");
+            $stmt->bind_param("ii", $product_id, $user_id);
+        } else {
+            $stmt = $conn->prepare("SELECT * FROM cart WHERE product_id = ? AND session_id = ?");
+            $stmt->bind_param("is", $product_id, $session_id);
+        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $stmt->close();
+
+        if ($result->num_rows > 0) {
+            // Update existing
+            if ($user_id) {
+                $stmt = $conn->prepare("UPDATE cart SET quantity = quantity + ? WHERE product_id = ? AND user_id = ?");
+                $stmt->bind_param("iii", $quantity, $product_id, $user_id);
+            } else {
+                $stmt = $conn->prepare("UPDATE cart SET quantity = quantity + ? WHERE product_id = ? AND session_id = ?");
+                $stmt->bind_param("iis", $quantity, $product_id, $session_id);
+            }
+        } else {
+            // Insert new
+            $name = $product['name'];
+            $price = $product['price'];
+            if ($user_id) {
+                $stmt = $conn->prepare("INSERT INTO cart (product_id, name, price, quantity, user_id) VALUES (?, ?, ?, ?, ?)");
+                $stmt->bind_param("isdii", $product_id, $name, $price, $quantity, $user_id);
+            } else {
+                $stmt = $conn->prepare("INSERT INTO cart (product_id, name, price, quantity, session_id) VALUES (?, ?, ?, ?, ?)");
+				$stmt->bind_param("isdis", $product_id, $name, $price, $quantity, $session_id);
+            }
+        }
+
+        if ($stmt->execute()) {
+            echo "<script>alert('Added to cart successfully!'); window.location.href = 'product.php?id={$product_id}';</script>";
+            exit;
+        } else {
+            echo "<script>alert('Failed to add to cart.');</script>";
+        }
+        $stmt->close();
+    } else {
+        echo "<script>alert('Product not found or out of stock.');</script>";
+    }
+}
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 	<head>
@@ -59,9 +150,8 @@
 						<ul class="breadcrumb-tree">
 							<li><a href="#">Home</a></li>
 							<li><a href="#">All Categories</a></li>
-							<li><a href="#">Accessories</a></li>
-							<li><a href="#">Headphones</a></li>
-							<li class="active">Product name goes here</li>
+							<li><a href="#"><?php echo htmlspecialchars($product['category_name']); ?></a></li>
+							<li class="active"><?php echo htmlspecialchars($product['name']); ?></li>
 						</ul>
 					</div>
 				</div>
@@ -78,103 +168,83 @@
 				<!-- row -->
 				<div class="row">
 					<!-- Product main img -->
-					<div class="col-md-5 col-md-push-2">
+					<div class="col-md-5">
 						<div id="product-main-img">
 							<div class="product-preview">
-								<img src="./img/product01.png" alt="">
-							</div>
-
-							<div class="product-preview">
-								<img src="./img/product03.png" alt="">
-							</div>
-
-							<div class="product-preview">
-								<img src="./img/product06.png" alt="">
-							</div>
-
-							<div class="product-preview">
-								<img src="./img/product08.png" alt="">
+								<img src="<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
 							</div>
 						</div>
 					</div>
 					<!-- /Product main img -->
 
-					<!-- Product thumb imgs -->
-					<div class="col-md-2  col-md-pull-5">
-						<div id="product-imgs">
-							<div class="product-preview">
-								<img src="./img/product01.png" alt="">
-							</div>
-
-							<div class="product-preview">
-								<img src="./img/product03.png" alt="">
-							</div>
-
-							<div class="product-preview">
-								<img src="./img/product06.png" alt="">
-							</div>
-
-							<div class="product-preview">
-								<img src="./img/product08.png" alt="">
-							</div>
-						</div>
-					</div>
-					<!-- /Product thumb imgs -->
-
 					<!-- Product details -->
 					<div class="col-md-5">
 						<div class="product-details">
-							<h2 class="product-name">product name goes here</h2>
+							<h2 class="product-name"><?php echo htmlspecialchars($product['name']); ?></h2>
 							<div>
-								<div class="product-rating">
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star-o"></i>
+								<div class="product-rating" >
+								<?php
+									// Ensure rating is a float and within 0-5 range
+									if ($product['rating'] !== null) {
+										if (is_numeric($product['rating'])) {
+											$product['rating'] = floatval($product['rating']);
+										} else {
+											$product['rating'] = 0; // Default to 0 if not numeric
+										}
+										if ($product['rating'] < 0) {
+											$product['rating'] = 0;
+										$product['rating'] = 0; // Default to 0 if rating is null
+											$product['rating'] = 5;
+										}
+									} else {
+										$product['rating'] = 0; // Default to 0 if no rating
+									}
+									// Calculate full and half stars based on rating
+									$fullStars = floor($product['rating']);
+									// Determine if a half-star should be displayed
+									$halfStar = ($product['rating'] - $fullStars) >= 0.5;
+								?>
+								<div class="rating-stars">
+									<?php for ($i = 0; $i < $fullStars; $i++): ?>
+										<i class="fa fa-star"></i>
+									<?php endfor; ?>
+									<?php if ($halfStar): ?>
+										<i class="fa fa-star-half-o"></i>
+									<?php endif; ?>
+									<?php for ($i = $fullStars + $halfStar; $i < 5; $i++): ?>
+										<i class="fa fa-star-o"></i>
+									<?php endfor; ?>
 								</div>
-								<a class="review-link" href="#">10 Review(s) | Add your review</a>
+								</div>
+								<a>As Rated by Our Staff</a>
 							</div>
 							<div>
-								<h3 class="product-price">$980.00 <del class="product-old-price">$990.00</del></h3>
-								<span class="product-available">In Stock</span>
-							</div>
-							<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-
-							<div class="product-options">
-								<label>
-									Size
-									<select class="input-select">
-										<option value="0">X</option>
-									</select>
-								</label>
-								<label>
-									Color
-									<select class="input-select">
-										<option value="0">Red</option>
-									</select>
-								</label>
+								<h3 class="product-price"><?php echo displayPrice($product['price']); ?></h3>
+								<span class="product-available">
+									<?php echo ($product['stock'] > 0) ? "In Stock" : "Out of Stock"; ?>
+								</span>
 							</div>
 
+							<br>
 							<div class="add-to-cart">
-								<div class="qty-label">
-									Qty
-									<div class="input-number">
-										<input type="number">
-										<span class="qty-up">+</span>
-										<span class="qty-down">-</span>
+							<form method="POST" id="addToCartForm">
+								<input type="hidden" name="product_id" value="<?php echo $product['product_id']; ?>">
+								<div class="add-to-cart">
+									<div class="qty-label">
+										Qty
+										<div class="input-number">
+											<input type="number" name="quantity" value="1" min="1" max="<?php echo htmlspecialchars($product['stock']); ?>" required>
+											<span class="qty-up">+</span>
+											<span class="qty-down">-</span>
+										</div>
 									</div>
+									<button type="submit" name="add_to_cart" class="add-to-cart-btn"><i class="fa fa-shopping-cart"></i> Add to cart</button>
 								</div>
-								<button class="add-to-cart-btn"><i class="fa fa-shopping-cart"></i> add to cart</button>
-							</div>
-
-							<ul class="product-btns">
-								<li><a href="#"><i class="fa fa-heart-o"></i> add to wishlist</a></li>
-							</ul>
+							</form>
 
 							<ul class="product-links">
 								<li>Category:</li>
-								<li><a href="#">Headphones</a></li>
+								<li><a><?php echo htmlspecialchars($product['category_name']); ?></a></li>
 							</ul>
 
 							<ul class="product-links">
@@ -186,6 +256,7 @@
 							</ul>
 
 						</div>
+						</div>
 					</div>
 					<!-- /Product details -->
 
@@ -196,9 +267,6 @@
 							<ul class="tab-nav">
 								<li class="active"><a data-toggle="tab" href="#tab1">Description</a></li>
 								<li><a data-toggle="tab" href="#tab2">Details</a></li>
-								<li><a data-toggle="tab" href="#tab4">Evaluation</a></li>
-								<li><a data-toggle="tab" href="#tab3">Reviews (3)</a></li>
-
 							</ul>
 							<!-- /product tab nav -->
 
@@ -208,8 +276,8 @@
 								<div id="tab1" class="tab-pane fade in active">
 									<div class="row">
 										<div class="col-md-12">
-											<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-										</div>
+											<p><?php echo nl2br(htmlspecialchars($product['description'])); ?></p>
+									</div>
 									</div>
 								</div>
 								<!-- /tab1  -->
@@ -218,260 +286,11 @@
 								<div id="tab2" class="tab-pane fade in">
 									<div class="row">
 										<div class="col-md-12">
-											<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+											<p>All our products are covered by our store’s standard terms and conditions. We aim to provide a smooth shopping experience—from secure checkout to timely delivery. Orders are typically processed within 1–2 business days and shipped via trusted couriers. If you're not completely satisfied with your purchase, you may request a return or exchange within 14 days of delivery, subject to our return policy.</p>Personal data is handled with care in accordance with our privacy policy; we do not share your information with third parties without consent. For more details, please review our full Terms & Conditions and Privacy Policy available on our website.</p>
 										</div>
 									</div>
 								</div>
 								<!-- /tab2  -->
-
-								<!-- tab3  -->
-								<div id="tab3" class="tab-pane fade in">
-									<div class="row">
-										<!-- Rating -->
-										<div class="col-md-3">
-											<div id="rating">
-												<div class="rating-avg">
-													<span>4.5</span>
-													<div class="rating-stars">
-														<i class="fa fa-star"></i>
-														<i class="fa fa-star"></i>
-														<i class="fa fa-star"></i>
-														<i class="fa fa-star"></i>
-														<i class="fa fa-star-o"></i>
-													</div>
-												</div>
-												<ul class="rating">
-													<li>
-														<div class="rating-stars">
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star"></i>
-														</div>
-														<div class="rating-progress">
-															<div style="width: 80%;"></div>
-														</div>
-														<span class="sum">3</span>
-													</li>
-													<li>
-														<div class="rating-stars">
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star-o"></i>
-														</div>
-														<div class="rating-progress">
-															<div style="width: 60%;"></div>
-														</div>
-														<span class="sum">2</span>
-													</li>
-													<li>
-														<div class="rating-stars">
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star-o"></i>
-															<i class="fa fa-star-o"></i>
-														</div>
-														<div class="rating-progress">
-															<div></div>
-														</div>
-														<span class="sum">0</span>
-													</li>
-													<li>
-														<div class="rating-stars">
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star-o"></i>
-															<i class="fa fa-star-o"></i>
-															<i class="fa fa-star-o"></i>
-														</div>
-														<div class="rating-progress">
-															<div></div>
-														</div>
-														<span class="sum">0</span>
-													</li>
-													<li>
-														<div class="rating-stars">
-															<i class="fa fa-star"></i>
-															<i class="fa fa-star-o"></i>
-															<i class="fa fa-star-o"></i>
-															<i class="fa fa-star-o"></i>
-															<i class="fa fa-star-o"></i>
-														</div>
-														<div class="rating-progress">
-															<div></div>
-														</div>
-														<span class="sum">0</span>
-													</li>
-												</ul>
-											</div>
-										</div>
-										<!-- /Rating -->
-
-										<!-- Reviews -->
-										<div class="col-md-6">
-											<div id="reviews">
-												<ul class="reviews">
-													<li>
-														<div class="review-heading">
-															<h5 class="name">John</h5>
-															<p class="date">27 DEC 2018, 8:0 PM</p>
-															<div class="review-rating">
-																<i class="fa fa-star"></i>
-																<i class="fa fa-star"></i>
-																<i class="fa fa-star"></i>
-																<i class="fa fa-star"></i>
-																<i class="fa fa-star-o empty"></i>
-															</div>
-														</div>
-														<div class="review-body">
-															<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua</p>
-														</div>
-													</li>
-													<li>
-														<div class="review-heading">
-															<h5 class="name">John</h5>
-															<p class="date">27 DEC 2018, 8:0 PM</p>
-															<div class="review-rating">
-																<i class="fa fa-star"></i>
-																<i class="fa fa-star"></i>
-																<i class="fa fa-star"></i>
-																<i class="fa fa-star"></i>
-																<i class="fa fa-star-o empty"></i>
-															</div>
-														</div>
-														<div class="review-body">
-															<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua</p>
-														</div>
-													</li>
-													<li>
-														<div class="review-heading">
-															<h5 class="name">John</h5>
-															<p class="date">27 DEC 2018, 8:0 PM</p>
-															<div class="review-rating">
-																<i class="fa fa-star"></i>
-																<i class="fa fa-star"></i>
-																<i class="fa fa-star"></i>
-																<i class="fa fa-star"></i>
-																<i class="fa fa-star-o empty"></i>
-															</div>
-														</div>
-														<div class="review-body">
-															<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua</p>
-														</div>
-													</li>
-												</ul>
-												<ul class="reviews-pagination">
-													<li class="active">1</li>
-													<li><a href="#">2</a></li>
-													<li><a href="#">3</a></li>
-													<li><a href="#">4</a></li>
-													<li><a href="#"><i class="fa fa-angle-right"></i></a></li>
-												</ul>
-											</div>
-										</div>
-										<!-- /Reviews -->
-
-										<!-- Review Form -->
-										<div class="col-md-3">
-											<div id="review-form">
-												<form class="review-form">
-													<input class="input" type="text" placeholder="Your Name">
-													<input class="input" type="email" placeholder="Your Email">
-													<textarea class="input" placeholder="Your Review"></textarea>
-													<div class="input-rating">
-														<span>Your Rating: </span>
-														<div class="stars">
-															<input id="star5" name="rating" value="5" type="radio"><label for="star5"></label>
-															<input id="star4" name="rating" value="4" type="radio"><label for="star4"></label>
-															<input id="star3" name="rating" value="3" type="radio"><label for="star3"></label>
-															<input id="star2" name="rating" value="2" type="radio"><label for="star2"></label>
-															<input id="star1" name="rating" value="1" type="radio"><label for="star1"></label>
-														</div>
-													</div>
-													<button class="primary-btn">Submit</button>
-												</form>
-											</div>
-										</div>
-										<!-- /Review Form -->
-									</div>
-								</div>
-								<!-- /tab3  -->
-
-								<!-- tab4  -->
-								
-								<div id="tab4" class="tab-pane fade in">
-
-										<!-- EVALUATION SECTION -->
-										<section class="section">
-										<div class="container">
-											<div class="row">
-											<div class="col-md-12">
-												<h2 class="text-center">Customer Evaluation</h2>
-												<p class="text-center">Help us improve by rating your experience.</p>
-												<form>
-												<!-- Delivery Experience -->
-												<div class="form-group">
-													<label>How was the delivery experience?</label><br>
-													<label><input type="radio" name="delivery" value="Excellent"> Excellent</label><br>
-													<label><input type="radio" name="delivery" value="Good"> Good</label><br>
-													<label><input type="radio" name="delivery" value="Fair"> Fair</label><br>
-													<label><input type="radio" name="delivery" value="Poor"> Poor</label>
-												</div>
-
-												<!-- Product Condition -->
-												<div class="form-group">
-													<label>Was the product in good condition?</label><br>
-													<label><input type="radio" name="condition" value="Yes"> Yes</label><br>
-													<label><input type="radio" name="condition" value="No"> No</label>
-												</div>
-
-												<!-- Satisfaction -->
-										
-												<div id="satisfaction-form">
-												<form class="review-form">
-													<div class="input-rating satisfaction-rating">
-													<span>Your Satisfaction:</span>
-													<div class="stars">
-														<input id="satisfaction-star5" name="satisfaction" value="5" type="radio">
-														<label for="satisfaction-star5"></label>
-														<input id="satisfaction-star4" name="satisfaction" value="4" type="radio">
-														<label for="satisfaction-star4"></label>
-														<input id="satisfaction-star3" name="satisfaction" value="3" type="radio">
-														<label for="satisfaction-star3"></label>
-														<input id="satisfaction-star2" name="satisfaction" value="2" type="radio">
-														<label for="satisfaction-star2"></label>
-														<input id="satisfaction-star1" name="satisfaction" value="1" type="radio">
-														<label for="satisfaction-star1"></label>
-													</div>
-													</div>
-													
-												</form>
-												</div>
-
-
-
-												<!-- Comments -->
-												<div class="form-group">
-													<label>Additional Comments:</label>
-													<textarea class="form-control" rows="4" placeholder="Share any feedback here..."></textarea>
-												</div>
-
-												<!-- Submit -->
-												<button class="primary-btn">Submit</button>
-												</form>
-											</div>
-											</div>
-										</div>
-										</section>
-
-									
-								</div>
-								
-								<!-- /tab4  -->
 							</div>
 							<!-- /product tab content  -->
 						</div>
@@ -483,154 +302,6 @@
 			<!-- /container -->
 		</div>
 		<!-- /SECTION -->
-
-		<!-- Section -->
-		<div class="section">
-			<!-- container -->
-			<div class="container">
-				<!-- row -->
-				<div class="row">
-
-					<div class="col-md-12">
-						<div class="section-title text-center">
-							<h3 class="title">Related Products</h3>
-						</div>
-					</div>
-
-					<!-- product -->
-					<div class="col-md-3 col-xs-6">
-						<div class="product">
-							<div class="product-img">
-								<img src="./img/product01.png" alt="">
-								<div class="product-label">
-									<span class="sale">-30%</span>
-								</div>
-							</div>
-							<div class="product-body">
-								<p class="product-category">Category</p>
-								<h3 class="product-name"><a href="#">product name goes here</a></h3>
-								<h4 class="product-price">$980.00 <del class="product-old-price">$990.00</del></h4>
-								<div class="product-rating">
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star-o"></i>
-								</div>
-								<div class="product-btns">
-									<button class="add-to-wishlist"><i class="fa fa-heart-o"></i><span class="tooltipp">add to wishlist</span></button>
-									
-									<a href="product.php" class="quick-view"> <i class="fa fa-eye"></i> <span class="tooltipp"></span></a>
-								</div>
-							</div>
-							<div class="add-to-cart">
-								<button class="add-to-cart-btn"><i class="fa fa-shopping-cart"></i> add to cart</button>
-							</div>
-						</div>
-					</div>
-					<!-- /product -->
-
-					<!-- product -->
-					<div class="col-md-3 col-xs-6">
-						<div class="product">
-							<div class="product-img">
-								<img src="./img/product02.png" alt="">
-								<div class="product-label">
-									<span class="new">NEW</span>
-								</div>
-							</div>
-							<div class="product-body">
-								<p class="product-category">Category</p>
-								<h3 class="product-name"><a href="#">product name goes here</a></h3>
-								<h4 class="product-price">$980.00 <del class="product-old-price">$990.00</del></h4>
-								<div class="product-rating">
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-								</div>
-								<div class="product-btns">
-									<button class="add-to-wishlist"><i class="fa fa-heart-o"></i><span class="tooltipp">add to wishlist</span></button>
-									<button class="add-to-compare"><i class="fa fa-exchange"></i><span class="tooltipp">add to compare</span></button>
-									<button class="quick-view"><i class="fa fa-eye"></i><span class="tooltipp">quick view</span></button>
-								</div>
-							</div>
-							<div class="add-to-cart">
-								<button class="add-to-cart-btn"><i class="fa fa-shopping-cart"></i> add to cart</button>
-							</div>
-						</div>
-					</div>
-					<!-- /product -->
-
-					<div class="clearfix visible-sm visible-xs"></div>
-
-					<!-- product -->
-					<div class="col-md-3 col-xs-6">
-						<div class="product">
-							<div class="product-img">
-								<img src="./img/product03.png" alt="">
-							</div>
-							<div class="product-body">
-								<p class="product-category">Category</p>
-								<h3 class="product-name"><a href="#">product name goes here</a></h3>
-								<h4 class="product-price">$980.00 <del class="product-old-price">$990.00</del></h4>
-								<div class="product-rating">
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star-o"></i>
-								</div>
-								<div class="product-btns">
-									<button class="add-to-wishlist"><i class="fa fa-heart-o"></i><span class="tooltipp">add to wishlist</span></button>
-									<button class="add-to-compare"><i class="fa fa-exchange"></i><span class="tooltipp">add to compare</span></button>
-									<button class="quick-view"><i class="fa fa-eye"></i><span class="tooltipp">quick view</span></button>
-								</div>
-							</div>
-							<div class="add-to-cart">
-								<button class="add-to-cart-btn"><i class="fa fa-shopping-cart"></i> add to cart</button>
-							</div>
-						</div>
-					</div>
-					<!-- /product -->
-
-					<!-- product -->
-					<div class="col-md-3 col-xs-6">
-						<div class="product">
-							<div class="product-img">
-								<img src="./img/product04.png" alt="">
-							</div>
-							<div class="product-body">
-								<p class="product-category">Category</p>
-								<h3 class="product-name"><a href="#">product name goes here</a></h3>
-								<h4 class="product-price">$980.00 <del class="product-old-price">$990.00</del></h4>
-								<div class="product-rating">
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star"></i>
-									<i class="fa fa-star-o"></i>
-								</div>
-								<div class="product-btns">
-									<button class="add-to-wishlist"><i class="fa fa-heart-o"></i><span class="tooltipp">add to wishlist</span></button>
-									<button class="add-to-compare"><i class="fa fa-exchange"></i><span class="tooltipp">add to compare</span></button>
-									<button class="quick-view"><i class="fa fa-eye"></i><span class="tooltipp">quick view</span></button>
-								</div>
-							</div>
-							<div class="add-to-cart">
-								<button class="add-to-cart-btn"><i class="fa fa-shopping-cart"></i> add to cart</button>
-							</div>
-						</div>
-					</div>
-					<!-- /product -->
-
-				</div>
-				<!-- /row -->
-			</div>
-			<!-- /container -->
-		</div>
-		<!-- /Section -->
 
 		<!-- FOOTER -->
 		<?php include 'footer.php'; ?>
