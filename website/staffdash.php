@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard</title>
+  <title>Staff Dashboard</title>
   <link rel="stylesheet" href="css/admindash.css?v=1.0">
 </head>
 <body>
@@ -11,7 +11,7 @@
   session_start();
   $currentPage = basename($_SERVER['PHP_SELF']);
 
-  // Check if user is admin
+  // Check if user is admin or staff
   if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'staff' && $_SESSION['role'] !== 'admin')) {
     echo "Access denied. You are not authorized to view this page.";
     exit;

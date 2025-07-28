@@ -106,9 +106,13 @@ error_log("Cart data: count={$cartData['count']}, total={$cartData['total']}, it
                             <li><a href="register.php">Register</a></li>
                         <?php else: ?>
                             <li><a href="orderhistory.php">Order History</a></li>
-                            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                            <?php if (isset($_SESSION['role'])): ?>
+                            <?php if ($_SESSION['role'] === 'admin'): ?>
                                 <li><a href="admindash.php">Admin Panel</a></li>
+                            <?php elseif ($_SESSION['role'] === 'staff'): ?>
+                                <li><a href="staffdash.php">Staff Panel</a></li>
                             <?php endif; ?>
+                        <?php endif; ?>
                             <li><a href="logout.php">Logout</a></li>
                         <?php endif; ?>
                     </ul>
