@@ -41,6 +41,10 @@ $category_names_param = isset($_GET['category_id']) ? explode(',', $_GET['catego
 $category_names = [];
 $category_ids = [];
 
+// Get price filter
+$price_min = isset($_GET['price_min']) ? floatval(str_replace(',', '', $_GET['price_min'])) : 1;
+$price_max = isset($_GET['price_max']) ? floatval(str_replace(',', '', $_GET['price_max'])) : 100000;
+
 // Fetch category IDs based on names
 if (!empty($category_names_param)) {
     $lowered_names = array_map('strtolower', $category_names_param);
@@ -92,19 +96,29 @@ if (!empty($category_ids)) {
     $placeholders = implode(',', array_fill(0, count($category_ids), '?'));
     $sqlCount = "SELECT COUNT(*) as total 
                  FROM products 
-                 WHERE category_id IN ($placeholders)";
+                 WHERE category_id IN ($placeholders) 
+                 AND price BETWEEN ? AND ?";
     $stmtCount = $conn->prepare($sqlCount);
-    $typesCount = str_repeat('i', count($category_ids));
-    $stmtCount->bind_param($typesCount, ...$category_ids);
+
+    $typesCount = str_repeat('i', count($category_ids)) . 'dd';
+    $paramsCount = array_merge($category_ids, [$price_min, $price_max]);
+
+    $stmtCount->bind_param($typesCount, ...$paramsCount);
     $stmtCount->execute();
     $resultCount = $stmtCount->get_result();
     $totalProducts = $resultCount->fetch_assoc()['total'];
     $stmtCount->close();
 } else {
-    $resultCount = $conn->query("SELECT COUNT(*) as total FROM products");
+    $sqlCount = "SELECT COUNT(*) as total FROM products WHERE price BETWEEN ? AND ?";
+    $stmtCount = $conn->prepare($sqlCount);
+    $stmtCount->bind_param('dd', $price_min, $price_max);
+    $stmtCount->execute();
+    $resultCount = $stmtCount->get_result();
     $totalProducts = $resultCount->fetch_assoc()['total'];
+    $stmtCount->close();
 }
 
+//Calculate pagination
 $totalPages = ceil($totalProducts / $show);
 $offset = ($page - 1) * $show;
 
@@ -113,14 +127,14 @@ if (!empty($category_ids)) {
     $sql = "SELECT p.*, c.name as category_name 
             FROM products p 
             JOIN categories c ON p.category_id = c.category_id
-            WHERE p.category_id IN ($placeholders)
+            WHERE p.category_id IN ($placeholders) 
+            AND p.price BETWEEN ? AND ?
             ORDER BY $order_by
             LIMIT ? OFFSET ?";
     $stmt = $conn->prepare($sql);
 
-    // Bind category IDs plus the limit and offset
-    $types = str_repeat('i', count($category_ids)) . 'ii';
-    $params = array_merge($category_ids, [$show, $offset]);
+    $types = str_repeat('i', count($category_ids)) . 'ddii';
+    $params = array_merge($category_ids, [$price_min, $price_max, $show, $offset]);
 
     $stmt->bind_param($types, ...$params);
     $stmt->execute();
@@ -129,10 +143,11 @@ if (!empty($category_ids)) {
     $sql = "SELECT p.*, c.name as category_name 
             FROM products p 
             JOIN categories c ON p.category_id = c.category_id
+            WHERE p.price BETWEEN ? AND ?
             ORDER BY $order_by
             LIMIT ? OFFSET ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('ii', $show, $offset);
+    $stmt->bind_param('ddii', $price_min, $price_max, $show, $offset);
     $stmt->execute();
     $products = $stmt->get_result();
 }
@@ -287,10 +302,10 @@ $categories = $conn->query("
                                 <div class="product">
                                     <div class="product-img">
                                         <?php if (isset($product['image']) && $product['image'] && file_exists($product['image'])): ?>
-    <img src="<?php echo htmlspecialchars($product['image'] . '?v=' . time()); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
-<?php else: ?>
-    No Image
-<?php endif; ?>
+                                            <img src="<?php echo htmlspecialchars($product['image'] . '?v=' . time()); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                        <?php else: ?>
+                                            No Image
+                                        <?php endif; ?>
                                         <?php if(rand(0,1) == 1): ?>
                                             <div class="product-label">
                                                 <span class="sale">-<?= rand(10,30) ?>%</span>
@@ -316,7 +331,7 @@ $categories = $conn->query("
                                         </div>
                                         <div class="product-btns">
                                             <button class="add-to-wishlist"><i class="fa fa-heart-o"></i><span class="tooltipp">add to wishlist</span></button>
-                                            <a href="product.php?id=<?= $product['product_id'] ?>" class="quick-view"><i class="fa fa-eye"></i><span class="tooltipp">quick view</span></a>
+                                            <a href="product.php?id=<?= $product['product_id'] ?>" class="quick-view"><i class="fa fa-eye"></i><span class="tooltipp"> Quick View</span></a>
                                         </div>
                                     </div>
                                     <div class="add-to-cart">
@@ -345,6 +360,8 @@ $categories = $conn->query("
                         <ul class="store-pagination">
                             <?php
                             $queryParams = $_GET;
+                            $queryParams['price_min'] = $price_min;
+                            $queryParams['price_max'] = $price_max;
                             for ($i = 1; $i <= $totalPages; $i++) {
                                 $queryParams['page'] = $i;
                                 $url = htmlspecialchars($_SERVER['PHP_SELF'] . '?' . http_build_query($queryParams));
@@ -354,6 +371,8 @@ $categories = $conn->query("
                             ?>
                             <?php if ($page < $totalPages): ?>
                                 <?php
+                                $queryParams['price_min'] = $price_min;
+                                $queryParams['price_max'] = $price_max;
                                 $queryParams['page'] = $page + 1;
                                 $nextUrl = htmlspecialchars($_SERVER['PHP_SELF'] . '?' . http_build_query($queryParams));
                                 ?>
@@ -402,6 +421,11 @@ $categories = $conn->query("
                 if (selected.length > 0) {
                     const params = new URLSearchParams(window.location.search);
                     params.set('category_id', selected.join(','));
+                    params.set('price_min', document.getElementById('price-min').value || 1);
+                    params.set('price_max', document.getElementById('price-max').value || 100000);
+                    params.set('sort', document.getElementById('sort-select').value);
+                    params.set('show', document.getElementById('show-select').value);
+
                     window.location.href = window.location.pathname + '?' + params.toString();
                 } else {
                     window.location.href = 'store.php';
@@ -423,6 +447,10 @@ $categories = $conn->query("
             params.set('sort', sortSelect.value);
             params.set('show', showSelect.value);
 
+            // Preserve price
+            params.set('price_min', document.getElementById('price-min').value || 1);
+            params.set('price_max', document.getElementById('price-max').value || 100000);
+
             // Preserve category filter if any
             // (already in params, so no change needed)
             window.location.href = window.location.pathname + '?' + params.toString();
@@ -431,6 +459,107 @@ $categories = $conn->query("
         sortSelect.addEventListener('change', updateUrl);
         showSelect.addEventListener('change', updateUrl);
     });
+    </script>
+
+    <!-- Price Slider Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var priceSlider = document.getElementById('price-slider');
+        var priceInputMin = document.getElementById('price-min');
+        var priceInputMax = document.getElementById('price-max');
+
+        function getURLParam(name) {
+            const url = new URL(window.location.href);
+            return url.searchParams.get(name);
+        }
+
+        if (priceSlider) {
+            noUiSlider.create(priceSlider, {
+                start: [
+                    parseFloat(getURLParam('price_min')) || 1,
+                    parseFloat(getURLParam('price_max')) || 100000
+                ],
+                connect: true,
+                step: 1,
+                range: {
+                    'min': 1,
+                    'max': 100000
+                },
+                format: {
+                    to: value => Math.round(value),
+                    from: value => parseFloat(value)
+                }
+            });
+
+            // Sync slider -> inputs
+            priceSlider.noUiSlider.on('update', function (values) {
+                priceInputMin.value = Math.round(values[0]);
+                priceInputMax.value = Math.round(values[1]);
+            });
+
+            // On slider change (user finishes sliding), reload URL with updated price
+            priceSlider.noUiSlider.on('change', function (values) {
+                updateUrlWithPrice(Math.round(values[0]), Math.round(values[1]));
+            });
+        }
+
+        // When inputs change, update slider and reload URL
+        priceInputMin.addEventListener('change', () => {
+            let minVal = parseInt(priceInputMin.value) || 1;
+            let maxVal = parseInt(priceInputMax.value) || 100000;
+
+            if (minVal < 1) minVal = 1;
+            if (maxVal > 100000) maxVal = 100000;
+            if (minVal > maxVal) minVal = maxVal;
+
+            priceInputMin.value = minVal;
+            priceInputMax.value = maxVal;
+
+            if (priceSlider) priceSlider.noUiSlider.set([minVal, maxVal]);
+
+            updateUrlWithPrice(minVal, maxVal);
+        });
+
+        priceInputMax.addEventListener('change', () => {
+            let minVal = parseInt(priceInputMin.value) || 1;
+            let maxVal = parseInt(priceInputMax.value) || 100000;
+
+            if (minVal < 1) minVal = 1;
+            if (maxVal > 100000) maxVal = 100000;
+            if (minVal > maxVal) maxVal = minVal;
+
+            priceInputMin.value = minVal;
+            priceInputMax.value = maxVal;
+
+            if (priceSlider) priceSlider.noUiSlider.set([minVal, maxVal]);
+
+            updateUrlWithPrice(minVal, maxVal);
+        });
+
+        function updateUrlWithPrice(min, max) {
+            const params = new URLSearchParams(window.location.search);
+
+            params.set('price_min', min);
+            params.set('price_max', max);
+
+            // Preserve sort and show selects
+            params.set('sort', document.getElementById('sort-select').value);
+            params.set('show', document.getElementById('show-select').value);
+
+            // Preserve category filter
+            const selected = [];
+            document.querySelectorAll('.category-filter:checked').forEach(cb => {
+                selected.push(cb.getAttribute('data-name'));
+            });
+            if (selected.length > 0) {
+                params.set('category_id', selected.join(','));
+            } else {
+                params.delete('category_id');
+            }
+
+            window.location.href = window.location.pathname + '?' + params.toString();
+        }
+        });    
     </script>
 </body>
 </html>

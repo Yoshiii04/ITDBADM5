@@ -438,14 +438,14 @@ CREATE TABLE `repairs` (
   `user_id` int DEFAULT NULL,
   `product_id` int DEFAULT NULL,
   `description` text,
-  `status` enum('pending','in_progress','completed') DEFAULT 'pending',
+  `status` enum('Pending','In Progress','Completed','Rejected') DEFAULT NULL,
   `request_date` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`repair_id`),
   KEY `user_id` (`user_id`),
   KEY `product_id` (`product_id`),
   CONSTRAINT `repairs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
   CONSTRAINT `repairs_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -454,6 +454,7 @@ CREATE TABLE `repairs` (
 
 LOCK TABLES `repairs` WRITE;
 /*!40000 ALTER TABLE `repairs` DISABLE KEYS */;
+INSERT INTO `repairs` VALUES (1,1,5,'Mouse not responding when clicked.','Pending','2025-07-10 00:00:00'),(2,2,6,'Keyboard LED lights not turning on.','In Progress','2025-07-12 00:00:00'),(3,1,12,'Audio crackling during calls.','Completed','2025-07-08 00:00:00'),(4,3,13,'Monitor showing flickering lines.','Pending','2025-07-14 00:00:00'),(5,2,14,'Mouse scroll wheel is loose.','Rejected','2025-07-09 00:00:00'),(6,3,18,'Mouse not charging wirelessly.','In Progress','2025-07-13 00:00:00');
 /*!40000 ALTER TABLE `repairs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -858,4 +859,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-07-29  1:55:51
+-- Dump completed on 2025-07-29  2:15:28
