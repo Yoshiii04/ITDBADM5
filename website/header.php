@@ -89,7 +89,12 @@ error_log("Cart data: count={$cartData['count']}, total={$cartData['total']}, it
                     <ul class="dropdown-menu">
                         <?php foreach ($rates as $code => $rate): ?>
                             <?php if ($code !== $currency): ?>
-                                <li><a href="?currency=<?= urlencode($code); ?>"><?= htmlspecialchars($code); ?></a></li>
+                                <?php
+                                    $currentParams = $_GET;
+                                    $currentParams['currency'] = $code;
+                                    $currencyUrl = htmlspecialchars($_SERVER['PHP_SELF'] . '?' . http_build_query($currentParams));
+                                ?>
+                                <li><a href="<?= $currencyUrl ?>"><?= htmlspecialchars($code); ?></a></li>
                             <?php endif; ?>
                         <?php endforeach; ?>
                     </ul>
@@ -106,13 +111,9 @@ error_log("Cart data: count={$cartData['count']}, total={$cartData['total']}, it
                             <li><a href="register.php">Register</a></li>
                         <?php else: ?>
                             <li><a href="orderhistory.php">Order History</a></li>
-                            <?php if (isset($_SESSION['role'])): ?>
-                            <?php if ($_SESSION['role'] === 'admin'): ?>
+                            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
                                 <li><a href="admindash.php">Admin Panel</a></li>
-                            <?php elseif ($_SESSION['role'] === 'staff'): ?>
-                                <li><a href="staffdash.php">Staff Panel</a></li>
                             <?php endif; ?>
-                        <?php endif; ?>
                             <li><a href="logout.php">Logout</a></li>
                         <?php endif; ?>
                     </ul>
