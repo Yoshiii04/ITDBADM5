@@ -1,117 +1,137 @@
 <?php
+ob_start();
 include 'config.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $current_table_name = $_POST['current_table_name'];
-    $new_table_name = $_POST['new_table_name'];
-    $column_names = $_POST['column_names'] ?? [];
-    $column_types = $_POST['column_types'] ?? [];
-    $row_ids = $_POST['row_ids'] ?? [];
-    $row_values = $_POST['row_values'] ?? [];
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+error_reporting(E_ALL);
+ini_set('log_errors', 1);
+ini_set('error_log', 'php_errors.log');
 
-    // Sanitize table names
-    $current_table_name = $conn->real_escape_string(preg_replace('/[^a-zA-Z0-9_]/', '', $current_table_name));
-    $new_table_name = $conn->real_escape_string(preg_replace('/[^a-zA-Z0-9_]/', '', $new_table_name));
+$current_table_name = isset($_POST['current_table_name']) ? $_POST['current_table_name'] : '';
+$new_table_name = isset($_POST['new_table_name']) ? $_POST['new_table_name'] : '';
+$column_names = isset($_POST['column_names']) ? $_POST['column_names'] : [];
+$row_ids = isset($_POST['row_ids']) ? $_POST['row_ids'] : [];
+$row_values = isset($_POST['row_values']) ? $_POST['row_values'] : [];
 
-    // Check if table exists
-    $result = $conn->query("SHOW TABLES LIKE '$current_table_name'");
-    if ($result->num_rows === 0) {
-        header("Location: tables.php?error=Table does not exist");
+$response = [];
+
+if (!preg_match('/^[a-zA-Z0-9_]+$/', $current_table_name) || !preg_match('/^[a-zA-Z0-9_]+$/', $new_table_name)) {
+    $response['error'] = 'Invalid table name';
+    error_log("Invalid table name in edit_table.php: current=$current_table_name, new=$new_table_name");
+    echo json_encode($response);
+    ob_end_flush();
+    exit;
+}
+
+try {
+    // Verify table exists
+    $table_check = $conn->query("SHOW TABLES LIKE '$current_table_name'");
+    if (!$table_check || $table_check->num_rows == 0) {
+        $response['error'] = "Table $current_table_name does not exist";
+        error_log("Table does not exist: $current_table_name");
+        echo json_encode($response);
+        ob_end_flush();
+        exit;
+    }
+    $table_check->free();
+
+    // Get primary key
+    $pk_result = $conn->query("SHOW KEYS FROM `$current_table_name` WHERE Key_name = 'PRIMARY'");
+    if ($pk_result && $pk_result->num_rows > 0) {
+        $pk_row = $pk_result->fetch_assoc();
+        $primary_key = $pk_row['Column_name'];
+    } else {
+        $response['error'] = "No primary key found for table $current_table_name";
+        error_log("No primary key for table: $current_table_name");
+        echo json_encode($response);
+        ob_end_flush();
+        exit;
+    }
+    $pk_result->free();
+
+    // Get current columns
+    $current_columns = [];
+    $column_result = $conn->query("SHOW COLUMNS FROM `$current_table_name`");
+    if ($column_result) {
+        while ($col = $column_result->fetch_assoc()) {
+            $current_columns[$col['Field']] = $col['Type'];
+        }
+        $column_result->free();
+    } else {
+        $response['error'] = 'Unable to fetch current columns: ' . $conn->error;
+        error_log("Column fetch error in edit_table.php: " . $conn->error);
+        echo json_encode($response);
+        ob_end_flush();
         exit;
     }
 
-    // Start transaction
-    $conn->begin_transaction();
-
-    try {
-        // Rename table if changed
-        if ($current_table_name !== $new_table_name) {
-            $result = $conn->query("SHOW TABLES LIKE '$new_table_name'");
-            if ($result->num_rows > 0) {
-                throw new Exception("Table name already exists");
-            }
-            $sql = "ALTER TABLE `$current_table_name` RENAME TO `$new_table_name`";
-            if (!$conn->query($sql)) {
-                throw new Exception("Error renaming table: " . $conn->error);
-            }
-            $current_table_name = $new_table_name;
+    // Rename table if changed
+    if ($current_table_name !== $new_table_name) {
+        $sql = "RENAME TABLE `$current_table_name` TO `$new_table_name`";
+        if (!$conn->query($sql)) {
+            $response['error'] = "Failed to rename table: " . $conn->error;
+            error_log("Rename table error: $sql, " . $conn->error);
+            echo json_encode($response);
+            ob_end_flush();
+            exit;
         }
-
-        // Get current columns
-        $current_columns = [];
-        $result = $conn->query("SHOW COLUMNS FROM `$current_table_name`");
-        while ($row = $result->fetch_assoc()) {
-            if ($row['Field'] !== 'id') {
-                $current_columns[$row['Field']] = $row['Type'];
-            }
-        }
-
-        // Validate and process columns
-        $allowed_data_types = ['VARCHAR(255)', 'INT', 'DECIMAL(10,2)', 'TEXT', 'DATETIME'];
-        $new_columns = [];
-        for ($i = 0; $i < count($column_names); $i++) {
-            $name = $conn->real_escape_string(preg_replace('/[^a-zA-Z0-9_]/', '', $column_names[$i]));
-            $type = $column_types[$i];
-            if (empty($name) || !in_array($type, $allowed_data_types)) {
-                throw new Exception("Invalid column definition: $name:$type");
-            }
-            $new_columns[$name] = $type;
-        }
-
-        // Update or add columns
-        foreach ($new_columns as $new_name => $new_type) {
-            if (isset($current_columns[$new_name])) {
-                if ($current_columns[$new_name] !== strtolower($new_type)) {
-                    $sql = "ALTER TABLE `$current_table_name` CHANGE `$new_name` `$new_name` $new_type";
-                        if (!$conn->query($sql)) {
-                            throw new Exception("Error updating column $new_name: " . $conn->error);
-                        }
-                }
-            } else {
-                $sql = "ALTER TABLE `$current_table_name` ADD `$new_name` $new_type";
-                if (!$conn->query($sql)) {
-                    throw new Exception("Error adding column $new_name: " . $conn->error);
-                }
-            }
-        }
-
-        // Process rows
-        $column_names = array_keys($new_columns ?: $current_columns);
-        foreach ($row_ids as $index => $id) {
-            $id = $conn->real_escape_string($id);
-            $values = $row_values[$id] ?? [];
-            if (count($values) !== count($column_names)) {
-                throw new Exception("Row data does not match column count for ID $id");
-            }
-            $set_clause = [];
-            foreach ($column_names as $col_index => $col) {
-                $value = $values[$col_index] === '' ? 'NULL' : "'" . $conn->real_escape_string($values[$col_index]) . "'";
-                $set_clause[] = "`$col` = $value";
-            }
-            $set_sql = implode(", ", $set_clause);
-            if (is_numeric($id)) {
-                // Update existing row
-                $sql = "UPDATE `$current_table_name` SET $set_sql WHERE id = '$id'";
-                    if (!$conn->query($sql) || $conn->affected_rows === 0) {
-                        throw new Exception("Error updating row with ID $id: " . $conn->error);
-                    }
-            } else {
-                // Insert new row
-                $sql = "INSERT INTO `$current_table_name` (`" . implode("`, `", $column_names) . "`) VALUES (" . implode(", ", array_map(fn($v) => $v === 'NULL' ? 'NULL' : $v, $set_clause)) . ")";
-                if (!$conn->query($sql)) {
-                    throw new Exception("Error inserting new row: " . $conn->error);
-                }
-            }
-        }
-
-        $conn->commit();
-        header("Location: tables.php?success=Table updated successfully");
-    } catch (Exception $e) {
-        $conn->rollback();
-        header("Location: tables.php?error=" . urlencode($e->getMessage()));
     }
-} else {
-    header("Location: tables.php?error=Invalid request");
+
+    // Rename columns
+    foreach ($column_names as $index => $new_name) {
+        $old_name = array_keys($current_columns)[$index];
+        $type = $current_columns[$old_name];
+        if ($old_name !== $new_name && preg_match('/^[a-zA-Z0-9_]+$/', $new_name)) {
+            if ($current_table_name === 'categories' && $old_name === 'name') {
+                $conn->query("ALTER TABLE `$current_table_name` DROP INDEX `name`");
+            }
+            $sql = "ALTER TABLE `$new_table_name` CHANGE `$old_name` `$new_name` $type";
+            if (!$conn->query($sql)) {
+                $response['error'] = "Failed to rename column $old_name to $new_name: " . $conn->error;
+                error_log("Rename column error: $sql, " . $conn->error);
+                echo json_encode($response);
+                ob_end_flush();
+                exit;
+            }
+        }
+    }
+
+    // Update row data
+    foreach ($row_ids as $index => $pk_value) {
+        if (!isset($row_values[$pk_value])) continue;
+        $values = $row_values[$pk_value];
+        $columns = array_keys($current_columns);
+        $set_clause = [];
+        foreach ($values as $i => $value) {
+            $col = $column_names[$i + 1] ?? $columns[$i + 1];
+            if ($col === $primary_key) continue;
+            $set_clause[] = "`$col` = ?";
+        }
+        if (empty($set_clause)) continue;
+        $sql = "UPDATE `$new_table_name` SET " . implode(', ', $set_clause) . " WHERE `$primary_key` = ?";
+        $stmt = $conn->prepare($sql);
+        $types = str_repeat('s', count($values)) . (strpos($current_columns[$primary_key], 'int') !== false ? 'i' : 's');
+        $bind_params = array_merge($values, [$pk_value]);
+        $stmt->bind_param($types, ...$bind_params);
+        if (!$stmt->execute()) {
+            $response['error'] = "Failed to update row $pk_value: " . $stmt->error;
+            error_log("Update row error: $sql, " . $stmt->error);
+            echo json_encode($response);
+            ob_end_flush();
+            exit;
+        }
+        $stmt->close();
+    }
+
+    $response['success'] = true;
+} catch (Exception $e) {
+    $response['error'] = 'Server error: ' . $e->getMessage();
+    error_log("Server error in edit_table.php: " . $e->getMessage());
 }
+
+ob_end_clean();
+header('Content-Type: application/json; charset=utf-8');
+echo json_encode($response);
+$conn->close();
 ?>
-```

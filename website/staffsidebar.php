@@ -1,7 +1,7 @@
 <aside class="sidebar">
-  <h2>Admin Panel</h2>
+  <h2>Staff Panel</h2>
   <ul>
-    <li><a href="admindash.php" class="<?php echo ($currentPage == 'admindash.php') ? 'active' : ''; ?>">Dashboard</a></li>
+    <li><a href="staffdash.php" class="<?php echo ($currentPage == 'admindash.php') ? 'active' : ''; ?>">Dashboard</a></li>
     <li><a href="index.php" class="<?php echo ($currentPage == 'index.php') ? 'active' : ''; ?>">Home</a></li>
     
     <li>
@@ -11,7 +11,6 @@
         <li><a href="adminproductsedit.php" class="<?php echo ($currentPage == 'adminproductsedit.php') ? 'active' : ''; ?>">Edit Product</a></li>
       </ul>
     </li>
-     <li><a href="staffdash.php" class="<?php echo ($currentPage == 'staffdash.php') ? 'active' : ''; ?>">Staff View</a></li>
     <li><a href="orders.php" class="<?php echo ($currentPage == 'orders.php') ? 'active' : ''; ?>">Orders</a></li>
     <li><a href="tables.php" class="<?php echo ($currentPage == 'tables.php') ? 'active' : ''; ?>">Tables</a></li>
     <li><a href="logout.php" class="<?php echo ($currentPage == 'logout.php') ? 'active' : ''; ?>">Logout</a></li>

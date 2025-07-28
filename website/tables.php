@@ -13,31 +13,25 @@
       vertical-align: middle;
     }
     .table-editable th {
-      background-color: #343a40; /* Match thead-dark */
+      background-color: #343a40;
       color: white;
       text-align: left;
     }
-    /* Columns table specific widths */
     #edit-columns th:nth-child(1), #edit-columns td:nth-child(1) {
-      width: 50%; /* Wider for column name input */
+      width: 60%;
     }
     #edit-columns th:nth-child(2), #edit-columns td:nth-child(2) {
-      width: 35%; /* Medium for data type dropdown */
+      width: 40%;
     }
-    #edit-columns th:nth-child(3), #edit-columns td:nth-child(3) {
-      width: 15%; /* Narrow for action button */
-      text-align: center;
-    }
-    /* Rows table: Dynamic widths based on columns */
     #edit-rows-table th, #edit-rows-table td {
       width: auto;
-      min-width: 100px; /* Minimum width for readability */
+      min-width: 100px;
     }
     #edit-rows-table th:first-child, #edit-rows-table td:first-child {
-      width: 10%; /* Narrower for ID */
+      width: 10%;
     }
     #edit-rows-table th:last-child, #edit-rows-table td:last-child {
-      width: 10%; /* Narrow for action button */
+      width: 10%;
       text-align: center;
     }
     .table-editable input, .table-editable select {
@@ -56,36 +50,28 @@
   </style>
 </head>
 <body>
-  <?php 
+  <?php
+  ini_set('display_errors', 1);
+  ini_set('display_startup_errors', 1);
+  error_reporting(E_ALL);
   $currentPage = basename($_SERVER['PHP_SELF']);
-
-    include 'config.php'; 
-
+  include 'config.php';
   ?>
-<!--  db connection ^^^ -->
-
   <div class="dashboard-container">
     <?php include 'adminsidebar.php'; ?>
-
     <div class="main-content">
       <h1>Database Tables</h1>
-
-      <!-- Success/Error Messages -->
       <?php if (isset($_GET['success'])): ?>
         <div class="alert alert-success"><?php echo htmlspecialchars($_GET['success']); ?></div>
       <?php endif; ?>
       <?php if (isset($_GET['error'])): ?>
         <div class="alert alert-danger"><?php echo htmlspecialchars($_GET['error']); ?></div>
       <?php endif; ?>
-
-      <!-- Add Table Button -->
       <div class="mb-3 text-right">
         <button class="btn btn-success" data-toggle="modal" data-target="#addTableModal">
           <i class="fas fa-plus-circle"></i> Add Table
         </button>
       </div>
-
-      <!-- Dynamic Table List -->
       <table class="table table-bordered table-striped">
         <thead class="thead-dark">
           <tr>
@@ -97,22 +83,16 @@
         </thead>
         <tbody>
           <?php
-          // Fetch all tables in the database using MySQLi
           $result = $conn->query("SHOW TABLES");
           if ($result) {
               while ($row = $result->fetch_array()) {
-                  $table = $row[0]; // MySQLi fetch_array returns the table name in the first column
-
-                  // Get column count
+                  $table = $row[0];
                   $column_result = $conn->query("SHOW COLUMNS FROM `$table`");
-                  $column_count = $column_result->num_rows;
-
-                  // Get row count
+                  $column_count = $column_result ? $column_result->num_rows : 0;
                   $row_result = $conn->query("SELECT COUNT(*) as row_count FROM `$table`");
-                  $row_count = $row_result->fetch_assoc()['row_count'];
-
+                  $row_count = $row_result ? $row_result->fetch_assoc()['row_count'] : 0;
                   echo "<tr>";
-                  echo "<td>$table</td>";
+                  echo "<td>" . htmlspecialchars($table) . "</td>";
                   echo "<td>$column_count</td>";
                   echo "<td>$row_count</td>";
                   echo "<td>
@@ -122,19 +102,18 @@
                           <button class='btn btn-sm btn-danger' onclick='deleteTable(\"$table\")'><i class='fas fa-trash'></i> Delete</button>
                         </td>";
                   echo "</tr>";
+                  if ($column_result) $column_result->free();
+                  if ($row_result) $row_result->free();
               }
-              $result->free(); // Free the result set
+              $result->free();
           } else {
-              echo "<tr><td colspan='4'>Error fetching tables: " . $conn->error . "</td></tr>";
+              echo "<tr><td colspan='4'>Error fetching tables: " . htmlspecialchars($conn->error) . "</td></tr>";
           }
           ?>
         </tbody>
       </table>
     </div>
   </div>
-
-  
-  <!-- Add Table Modal -->
   <div class="modal fade" id="addTableModal" tabindex="-1" role="dialog" aria-labelledby="addTableModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
       <form class="modal-content" method="POST" action="create_table.php">
@@ -159,9 +138,6 @@
       </form>
     </div>
   </div>
-
-        <!-- error in modal action column and row data delete button, edit table modal works but u have to edit the row first before shitfing to INT or VARCHAR-->
-    <!-- Edit Table Modal -->
   <div class="modal fade" id="editTableModal" tabindex="-1" role="dialog" aria-labelledby="editTableModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
       <form class="modal-content" id="editTableForm" method="POST" action="edit_table.php">
@@ -185,12 +161,10 @@
                 <tr>
                   <th>Column Name</th>
                   <th>Data Type</th>
-                  <th>Action</th>
                 </tr>
               </thead>
               <tbody id="edit-columns"></tbody>
             </table>
-           
           </div>
           <div class="form-group">
             <label>Row Data</label>
@@ -198,7 +172,6 @@
               <thead id="edit-rows-headers"></thead>
               <tbody id="edit-rows"></tbody>
             </table>
-           
           </div>
         </div>
         <div class="modal-footer">
@@ -209,8 +182,6 @@
       </form>
     </div>
   </div>
-
-  <!-- Add Column Modal -->
   <div class="modal fade" id="addColumnModal" tabindex="-1" role="dialog" aria-labelledby="addColumnModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
       <form class="modal-content" method="POST" action="add_column.php">
@@ -245,8 +216,6 @@
       </form>
     </div>
   </div>
-
-  <!-- Add Row Modal -->
   <div class="modal fade" id="addRowModal" tabindex="-1" role="dialog" aria-labelledby="addRowModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
       <form class="modal-content" method="POST" action="add_row.php">
@@ -268,12 +237,9 @@
       </form>
     </div>
   </div>
-
-   <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    // Display and clear success/error messages
     <?php if (isset($_GET['success']) || isset($_GET['error'])): ?>
       $(document).ready(function() {
         const message = <?php echo isset($_GET['success']) ? json_encode(htmlspecialchars($_GET['success'])) : json_encode(htmlspecialchars($_GET['error'])); ?>;
@@ -285,13 +251,10 @@
                             </button>
                           </div>`;
         $('body').append(alertHtml);
-        // Clear URL query parameters
         history.replaceState(null, '', 'tables.php');
-        // Auto-dismiss after 5 seconds
         setTimeout(() => $('.alert').alert('close'), 5000);
       });
     <?php endif; ?>
-
     function editTable(tableName) {
       $('#editTableModal').find('input[name="current_table_name"]').val(tableName);
       $('#editTableModal').find('input[name="new_table_name"]').val(tableName);
@@ -299,118 +262,92 @@
         url: 'get_table_data.php',
         method: 'POST',
         data: { table_name: tableName },
-        success: function(response) {
-          try {
-            const data = JSON.parse(response);
-            if (data.error) {
-              console.error('Error from get_table_data.php:', data.error);
-              $('#edit-columns').html('<tr><td colspan="3">Error: ' + data.error + '</td></tr>');
-              $('#edit-rows').html('<tr><td>Error: ' + data.error + '</td></tr>');
-              $('#editTableModal').modal('show');
-              return;
-            }
-            // Populate columns
-            $('#edit-columns').html('');
-            data.columns.forEach(col => {
-              const [name, type] = col.split(':');
-              const row = `
-                <tr>
-                  <td><input type="text" name="column_names[]" class="form-control" value="${name}" required></td>
-                  <td>
-                    <select name="column_types[]" class="form-control" required>
-                      <option value="VARCHAR(255)" ${type === 'VARCHAR(255)' ? 'selected' : ''}>VARCHAR(255)</option>
-                      <option value="INT" ${type === 'INT' ? 'selected' : ''}>INT</option>
-                      <option value="DECIMAL(10,2)" ${type === 'DECIMAL(10,2)' ? 'selected' : ''}>DECIMAL(10,2)</option>
-                      <option value="TEXT" ${type === 'TEXT' ? 'selected' : ''}>TEXT</option>
-                      <option value="DATETIME" ${type === 'DATETIME' ? 'selected' : ''}>DATETIME</option>
-                    </select>
-                  </td>
-                  <td><i class="fas fa-trash remove-btn" onclick="deleteColumn('${tableName}', '${name}', this)"></i></td>
-                </tr>`;
-              $('#edit-columns').append(row);
-            });
-            // Populate row headers
-            $('#edit-rows-headers').html(`<tr><th>ID</th>${data.columns.map(col => `<th>${col.split(':')[0]}</th>`).join('')}<th>Action</th></tr>`);
-            // Populate rows
-            $('#edit-rows').html('');
-            data.rows.forEach(row => {
-              const values = row.split(',');
-              const id = values.shift();
-              const rowHtml = `
-                <tr>
-                  <td><input type="text" name="row_ids[]" class="form-control" value="${id}" readonly></td>
-                  ${values.map(val => `<td><input type="text" name="row_values[${id}][]" class="form-control" value="${val}"></td>`).join('')}
-                  <td><i class="fas fa-trash remove-btn" onclick="deleteRow('${tableName}', '${id}', this)"></i></td>
-                </tr>`;
-              $('#edit-rows').append(rowHtml);
-            });
+        dataType: 'json',
+        success: function(data) {
+          if (data.error) {
+            console.error('Error from get_table_data.php:', data.error);
+            $('#edit-columns').html('<tr><td colspan="2">Error: ' + data.error + '</td></tr>');
+            $('#edit-rows').html('<tr><td>Error: ' + data.error + '</td></tr>');
             $('#editTableModal').modal('show');
-          } catch (e) {
-            console.error('Error parsing response:', e, response);
-            $('#edit-columns').html('<tr><td colspan="3">Error loading columns</td></tr>');
-            $('#edit-rows').html('<tr><td>Error loading rows</td></tr>');
-            $('#editTableModal').modal('show');
+            return;
           }
+          const normalizeType = (type) => {
+            if (type.match(/^int/)) return 'INT';
+            if (type.match(/^varchar/)) return 'VARCHAR(255)';
+            if (type.match(/^decimal/)) return 'DECIMAL(10,2)';
+            if (type === 'text') return 'TEXT';
+            if (type === 'datetime') return 'DATETIME';
+            return 'VARCHAR(255)';
+          };
+          $('#edit-columns').html('');
+          data.columns.forEach(col => {
+            const [name, rawType] = col.split(':');
+            const type = normalizeType(rawType.toLowerCase());
+            const row = `
+              <tr>
+                <td><input type="text" name="column_names[]" class="form-control" value="${name}" required></td>
+                <td>
+                  <select name="column_types[]" class="form-control" disabled>
+                    <option value="VARCHAR(255)" ${type === 'VARCHAR(255)' ? 'selected' : ''}>VARCHAR(255)</option>
+                    <option value="INT" ${type === 'INT' ? 'selected' : ''}>INT</option>
+                    <option value="DECIMAL(10,2)" ${type === 'DECIMAL(10,2)' ? 'selected' : ''}>DECIMAL(10,2)</option>
+                    <option value="TEXT" ${type === 'TEXT' ? 'selected' : ''}>TEXT</option>
+                    <option value="DATETIME" ${type === 'DATETIME' ? 'selected' : ''}>DATETIME</option>
+                  </select>
+                </td>
+              </tr>`;
+            $('#edit-columns').append(row);
+          });
+          $('#edit-rows-headers').html(`
+            <tr>
+              <th>${data.primary_key}</th>
+              ${data.columns
+                .filter(col => col.split(':')[0] !== data.primary_key)
+                .map(col => `<th>${col.split(':')[0]}</th>`).join('')}
+              <th>Action</th>
+            </tr>
+          `);
+          $('#edit-rows').html('');
+          data.rows.forEach(row => {
+            if (!row) return;
+            const values = row.split(',');
+            const pkValue = values.shift() || '';
+            const rowHtml = `
+              <tr>
+                <td><input type="text" name="row_ids[]" class="form-control" value="${pkValue}" readonly></td>
+                ${values.map(val => `<td><input type="text" name="row_values[${pkValue}][]" class="form-control" value="${val === null ? '' : val}"></td>`).join('')}
+                <td><i class="fas fa-trash remove-btn" onclick="deleteRow(event, '${tableName}', '${pkValue}', '${data.primary_key}', this)"></i></td>
+              </tr>`;
+            $('#edit-rows').append(rowHtml);
+          });
+          $('#editTableModal').modal('show');
         },
         error: function(xhr, status, error) {
           console.error('AJAX error:', status, error, xhr.responseText);
-          $('#edit-columns').html('<tr><td colspan="3">Error loading columns</td></tr>');
-          $('#edit-rows').html('<tr><td>Error loading rows</td></tr>');
+          $('#edit-columns').html('<tr><td colspan="2">Error loading columns: ${xhr.responseText}</td></tr>');
+          $('#edit-rows').html('<tr><td>Error loading rows: ${xhr.responseText}</td></tr>');
           $('#editTableModal').modal('show');
         }
       });
     }
-
-  function deleteColumn(tableName, columnName, element) {
-  if (confirm(`Are you sure you want to delete the column '${columnName}'? This action cannot be undone.`)) {
-    $.ajax({
-      url: 'delete_column.php',
-      method: 'POST',
-      data: { table_name: tableName, column_name: columnName },
-      success: function(response) {
-        try {
-          const result = JSON.parse(response);
-          if (result.success) {
-            $(element).closest('tr').remove();
-            alert('Column deleted successfully');
-            editTable(tableName); // Refresh modal
-          } else {
-            console.error('Error from delete_column.php:', result.error);
-            alert('Error deleting column: ' + result.error);
-          }
-        } catch (e) {
-          console.error('Error parsing delete_column response:', e, response);
-          alert('Error processing response: ' + response);
-        }
-      },
-      error: function(xhr, status, error) {
-        console.error('AJAX error in deleteColumn:', status, error, xhr.responseText);
-        alert('Error deleting column: AJAX request failed');
-      }
-    });
-  }
-}
-
-  function deleteRow(tableName, id, element) {
-  if (confirm(`Are you sure you want to delete the row with ID ${id}? This action cannot be undone.`)) {
+    function deleteRow(event, tableName, pkValue, primaryKey, element) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (confirm(`Are you sure you want to delete the row with ${primaryKey} ${pkValue}? This action cannot be undone.`)) {
         $.ajax({
           url: 'delete_row.php',
           method: 'POST',
-          data: { table_name: tableName, id: id },
+          data: { table_name: tableName, id: pkValue, primary_key: primaryKey },
+          dataType: 'json',
           success: function(response) {
-            try {
-              const result = JSON.parse(response);
-              if (result.success) {
-                $(element).closest('tr').remove();
-                alert('Row deleted successfully');
-                editTable(tableName); // Refresh modal
-              } else {
-                console.error('Error from delete_row.php:', result.error);
-                alert('Error deleting row: ' + result.error);
-              }
-            } catch (e) {
-              console.error('Error parsing delete_row response:', e, response);
-              alert('Error processing response: ' + response);
+            console.log('delete_row.php response:', response);
+            if (response.success) {
+              $(element).closest('tr').remove();
+              alert('Row deleted successfully');
+              editTable(tableName);
+            } else {
+              console.error('Error from delete_row.php:', response.error);
+              alert('Error deleting row: ' + response.error);
             }
           },
           error: function(xhr, status, error) {
@@ -420,97 +357,10 @@
         });
       }
     }
-
-    function addColumnInput(name = '', type = 'VARCHAR(255)') {
-      const entry = document.createElement('tr');
-      entry.className = 'column-entry';
-      entry.innerHTML = `
-        <td><input type="text" name="column_names[]" class="form-control" value="${name}" placeholder="e.g. column_name" required></td>
-        <td>
-          <select name="column_types[]" class="form-control" required>
-            <option value="VARCHAR(255)" ${type === 'VARCHAR(255)' ? 'selected' : ''}>VARCHAR(255)</option>
-            <option value="INT" ${type === 'INT' ? 'selected' : ''}>INT</option>
-            <option value="DECIMAL(10,2)" ${type === 'DECIMAL(10,2)' ? 'selected' : ''}>DECIMAL(10,2)</option>
-            <option value="TEXT" ${type === 'TEXT' ? 'selected' : ''}>TEXT</option>
-            <option value="DATETIME" ${type === 'DATETIME' ? 'selected' : ''}>DATETIME</option>
-          </select>
-        </td>
-        <td><i class="fas fa-trash remove-btn" onclick="this.parentElement.parentElement.remove()"></i></td>
-      `;
-      document.getElementById('edit-columns').appendChild(entry);
-    }
-
-    function addRowInput(id = '', values = [], columnNames = []) {
-      const entry = document.createElement('tr');
-      entry.className = 'row-entry';
-      let html = `<td><input type="text" name="row_ids[]" class="form-control" value="${id}" ${id ? 'readonly' : ''} placeholder="New ID" required></td>`;
-      values.forEach((val, index) => {
-        html += `<td><input type="text" name="row_values[${id || 'new_' + Math.random().toString(36).substr(2, 9)}][]" class="form-control" value="${val}" placeholder="Value for ${columnNames[index] || 'column'}" ${id ? '' : 'required'}></td>`;
-      });
-      html += '<td><i class="fas fa-trash remove-btn" onclick="this.parentElement.parentElement.remove()"></i></td>';
-      entry.innerHTML = html;
-      document.getElementById('edit-rows').appendChild(entry);
-    }
-
-    function validateColumnTypeChange(columnName, newType, callback) {
-    $.ajax({
-        url: 'check_column_data.php',
-        method: 'POST',
-        data: { table_name: $('#editTableModal input[name="current_table_name"]').val(), column_name: columnName },
-        success: function(response) {
-            const data = JSON.parse(response);
-            let valid = true;
-            if (newType === 'INT') {
-                data.values.forEach(val => {
-                    if (val !== null && (!isNumeric(val) || Math.floor(parseFloat(val)) != parseFloat(val))) {
-                        valid = false;
-                    }
-                });
-            } else if (newType === 'DECIMAL(10,2)') {
-                data.values.forEach(val => {
-                    if (val !== null && !isNumeric(val)) {
-                        valid = false;
-                    }
-                });
-            } else if (newType === 'DATETIME') {
-                data.values.forEach(val => {
-                    if (val !== null && !isValidDate(val)) {
-                        valid = false;
-                    }
-                });
-            }
-            if (!valid) {
-                alert(`Warning: Column ${columnName} contains data incompatible with ${newType}. Please update row data first.`);
-            }
-            callback(valid);
-        }
-    });
-}
-
-    function isNumeric(str) {
-        return !isNaN(parseFloat(str)) && isFinite(str);
-    }
-
-    function isValidDate(str) {
-        return !isNaN(Date.parse(str));
-    }
-
-    // Attach to select change
-    $('#edit-columns').on('change', 'select[name="column_types[]"]', function() {
-        const columnName = $(this).closest('tr').find('input[name="column_names[]"]').val();
-        const newType = $(this).val();
-        validateColumnTypeChange(columnName, newType, function(valid) {
-            if (!valid) {
-                $(this).val('VARCHAR(255)'); // Revert to safe type
-            }
-        });
-    });
-
     function addColumn(tableName) {
       $('#addColumnModal').find('input[name="table_name"]').val(tableName);
       $('#addColumnModal').modal('show');
     }
-
     function addRow(tableName) {
       $('#addRowModal').find('input[name="table_name"]').val(tableName);
       $.ajax({
@@ -527,14 +377,11 @@
         }
       });
     }
-
-
     function deleteTable(tableName) {
       if (confirm('Are you sure you want to delete the table ' + tableName + '?')) {
         window.location.href = 'delete_table.php?table=' + encodeURIComponent(tableName);
       }
     }
-
     function deleteTableFromModal() {
       const tableName = $('#editTableModal').find('input[name="current_table_name"]').val();
       if (confirm('Are you sure you want to delete the table ' + tableName + '? This action cannot be undone.')) {
@@ -542,8 +389,31 @@
         $('#editTableModal').modal('hide');
       }
     }
-
-     
+    $('#editTableForm').on('submit', function(e) {
+      e.preventDefault();
+      $.ajax({
+        url: 'edit_table.php',
+        method: 'POST',
+        data: $(this).serialize(),
+        dataType: 'json',
+        success: function(response) {
+          console.log('edit_table.php response:', response);
+          if (response.success) {
+            alert('Table updated successfully');
+            const newTableName = $('#editTableModal').find('input[name="new_table_name"]').val();
+            editTable(newTableName); 
+            location.reload(); // Refresh the page after success
+          } else {
+            console.error('Error from edit_table.php:', response.error);
+            alert('Error updating table: ' + response.error);
+          }
+        },
+        error: function(xhr, status, error) {
+          console.error('AJAX error in editTableForm:', status, error, xhr.responseText);
+          alert('Error updating table: AJAX request failed');
+        }
+      });
+    });
   </script>
 </body>
 </html>
