@@ -61,7 +61,7 @@ CREATE TABLE `cart` (
   PRIMARY KEY (`item_id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `cart_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -70,7 +70,7 @@ CREATE TABLE `cart` (
 
 LOCK TABLES `cart` WRITE;
 /*!40000 ALTER TABLE `cart` DISABLE KEYS */;
-INSERT INTO `cart` VALUES (3,'Wireless Mouse',599.00,1,5,NULL,'test_session_123');
+INSERT INTO `cart` VALUES (3,'Wireless Mouse',599.00,1,5,NULL,'test_session_123'),(5,'Wireless Mouse',599.00,1,5,NULL,'');
 /*!40000 ALTER TABLE `cart` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -120,6 +120,7 @@ CREATE TABLE `currencies` (
 
 LOCK TABLES `currencies` WRITE;
 /*!40000 ALTER TABLE `currencies` DISABLE KEYS */;
+INSERT INTO `currencies` VALUES ('KRW',24.3300,'2025-07-28 00:00:00'),('USD',0.0180,'2025-07-28 00:00:00');
 /*!40000 ALTER TABLE `currencies` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -942,4 +943,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-07-28 20:58:54
+-- Dump completed on 2025-07-28 22:03:25
