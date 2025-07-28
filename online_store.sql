@@ -119,7 +119,7 @@ CREATE TABLE `currencies` (
 
 LOCK TABLES `currencies` WRITE;
 /*!40000 ALTER TABLE `currencies` DISABLE KEYS */;
-INSERT INTO `currencies` VALUES ('KRW',24.3300,'2025-07-28 00:00:00'),('USD',0.0180,'2025-07-28 00:00:00');
+INSERT INTO `currencies` VALUES ('KRW',24.3300,'2025-07-28 00:00:00'),('PHP',1.0000,'2025-07-29 00:00:00'),('USD',0.0180,'2025-07-28 00:00:00');
 /*!40000 ALTER TABLE `currencies` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -858,4 +858,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-07-29  1:02:02
+-- Dump completed on 2025-07-29  1:39:28
