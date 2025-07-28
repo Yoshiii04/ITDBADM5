@@ -1,5 +1,5 @@
 <?php
-//  DB Connection
+// MySQL connection
 $servername = "localhost";
 $username = "root";
 $password = "";
@@ -10,134 +10,135 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Currency setup
+// Get order ID and currency
+$order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
 $currency = isset($_GET['currency']) ? $_GET['currency'] : 'PHP';
 
-$exchangeRates = [
-  'PHP' => 1.00,
-  'USD' => 0.0182,
-  'KRW' => 23.57
-];
+// Get exchange rate
+$rate = 1.00;
+if ($currency !== 'PHP') {
+    $stmt = $conn->prepare("SELECT exchange_rate FROM currencies WHERE currency_code = ?");
+    $stmt->bind_param("s", $currency);
+    $stmt->execute();
+    $stmt->bind_result($rate);
+    $stmt->fetch();
+    $stmt->close();
+}
 
+// Currency symbols
 $symbols = [
-  'PHP' => '₱',
-  'USD' => '$',
-  'KRW' => '₩'
+    'PHP' => '₱',
+    'USD' => '$',
+    'KRW' => '₩'
 ];
-
-$rate = $exchangeRates[$currency] ?? 1.00;
 $symbol = $symbols[$currency] ?? '₱';
 
-// Get order_id (can be passed from orders.php via GET)
-$order_id = isset($_GET['order_id']) ? (int) $_GET['order_id'] : 1001; // default fallback
+// Get order details
+$order = [];
+$orderitems = [];
 
-// Fetch order items from ordersview table
-$sql = "SELECT * FROM ordersview WHERE order_id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $order_id);
-$stmt->execute();
-$result = $stmt->get_result();
+if ($order_id > 0) {
+    // Get basic order info
+    $stmt = $conn->prepare("SELECT * FROM orders WHERE order_id = ?");
+    $stmt->bind_param("i", $order_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $order = $result->fetch_assoc();
+    $stmt->close();
 
-$order_items = [];
-$order_info = null;
-
-while ($row = $result->fetch_assoc()) {
-    $order_items[] = $row;
-    if (!$order_info) {
-        $order_info = $row; // grab common fields only once
+    if ($order) {
+        // Get order items (you'll need an orderitems table)
+        // This assumes you have an orderitems table that links orders to products
+        $stmt = $conn->prepare("
+            SELECT oi.*, p.name, p.price, p.image 
+            FROM orderitems oi
+            JOIN products p ON oi.product_id = p.product_id
+            WHERE oi.order_id = ?
+        ");
+        $stmt->bind_param("i", $order_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $orderitems[] = $row;
+        }
+        $stmt->close();
     }
 }
 
-$stmt->close();
+// If no order found, redirect back
+if (empty($order)) {
+    header("Location: orders.php");
+    exit;
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>View Order - Admin</title>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-  <link rel="stylesheet" href="css/admindash.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Details #<?= $order_id ?></title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
-<?php $currentPage = basename($_SERVER['PHP_SELF']); ?>
-<div class="dashboard-container">
-  <?php include 'adminsidebar.php'; ?>
-
-  <div class="main-content">
-    <h1>Order Details</h1>
-
-    <!-- Currency Dropdown -->
-    <form method="GET" class="form-inline mb-3">
-      <input type="hidden" name="order_id" value="<?= htmlspecialchars($order_id) ?>">
-      <label class="mr-2" for="currency">Currency:</label>
-      <select class="form-control mr-2" name="currency" id="currency">
-        <option value="PHP" <?= $currency == 'PHP' ? 'selected' : '' ?>>PHP (₱)</option>
-        <option value="USD" <?= $currency == 'USD' ? 'selected' : '' ?>>USD ($)</option>
-        <option value="KRW" <?= $currency == 'KRW' ? 'selected' : '' ?>>KRW (₩)</option>
-      </select>
-      <button class="btn btn-secondary" type="submit">Convert</button>
-    </form>
-
-    <?php if ($order_info): ?>
-    <div class="card">
-      <div class="card-body">
-        <h4 class="card-title mb-3">#<?= $order_info['order_id'] ?> - <?= htmlspecialchars($order_info['customer_name']) ?></h4>
-        <p><strong>Email:</strong> <?= htmlspecialchars($order_info['customer_email']) ?></p>
-        <p><strong>Date:</strong> <?= htmlspecialchars($order_info['order_date']) ?></p>
-        <p><strong>Status:</strong> 
-          <span class="badge badge-success"><?= htmlspecialchars($order_info['status']) ?></span>
-        </p>
-
-        <hr>
-        <h5>Items:</h5>
-        <table class="table table-bordered mt-3">
-          <thead class="thead-light">
-            <tr>
-              <th>Product</th>
-              <th>Quantity</th>
-              <th>Price (<?= $symbol ?>)</th>
-              <th>Subtotal (<?= $symbol ?>)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php 
-            $total = 0;
-            foreach ($order_items as $item): 
-              $price = $item['price'] * $rate;
-              $subtotal = $item['subtotal'] * $rate;
-              $total += $subtotal;
-            ?>
-              <tr>
-                <td><?= htmlspecialchars($item['product_name']) ?></td>
-                <td><?= $item['quantity'] ?></td>
-                <td><?= $symbol . number_format($price, 2) ?></td>
-                <td><?= $symbol . number_format($subtotal, 2) ?></td>
-              </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-
-        <div class="text-right">
-          <h5><strong>Total:</strong> <?= $symbol . number_format($total, 2) ?></h5>
+<div class="container mt-4">
+    <h2>Order Details #<?= $order_id ?></h2>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h4>Customer Information</h4>
+            <p><strong>Name:</strong> <?= htmlspecialchars($order['customer_name']) ?></p>
+            <p><strong>Order Date:</strong> <?= htmlspecialchars($order['order_date']) ?></p>
+            <p><strong>Status:</strong> 
+                <span class="badge 
+                    <?= $order['status'] == 'Pending' ? 'badge-warning' : 
+                       ($order['status'] == 'Processing' ? 'badge-info' : 
+                       ($order['status'] == 'Completed' ? 'badge-success' : 'badge-danger')) ?>">
+                    <?= htmlspecialchars($order['status']) ?>
+                </span>
+            </p>
         </div>
-      </div>
+        <div class="col-md-6">
+            <h4>Order Summary</h4>
+            <p><strong>Total Amount:</strong> <?= $symbol . number_format($order['total_amount'] * $rate, 2) ?></p>
+        </div>
     </div>
-    <?php else: ?>
-      <div class="alert alert-warning">Order not found.</div>
-    <?php endif; ?>
 
-    <a href="orders.php?currency=<?= urlencode($currency) ?>" class="btn btn-secondary mt-4">
-      <i class="fas fa-arrow-left"></i> Back to Orders
-    </a>
-  </div>
+    <h4>Order Items</h4>
+    <table class="table table-bordered">
+        <thead class="thead-dark">
+            <tr>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (empty($orderitems)): ?>
+                <tr>
+                    <td colspan="4" class="text-center">No items found</td>
+                </tr>
+            <?php else: ?>
+                <?php foreach ($orderitems as $item): ?>
+                    <tr>
+                        <td>
+                            <?php if ($item['image']): ?>
+                                <img src="<?= htmlspecialchars($item['image']) ?>" alt="<?= htmlspecialchars($item['name']) ?>" width="50" class="mr-2">
+                            <?php endif; ?>
+                            <?= htmlspecialchars($item['name']) ?>
+                        </td>
+                        <td><?= $symbol . number_format($item['price'] * $rate, 2) ?></td>
+                        <td><?= htmlspecialchars($item['quantity']) ?></td>
+                        <td><?= $symbol . number_format($item['price'] * $item['quantity'] * $rate, 2) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </tbody>
+    </table>
+
+    <a href="orders.php?currency=<?= urlencode($currency) ?>" class="btn btn-secondary">Back to Orders</a>
 </div>
-
-<!-- Scripts -->
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
-

@@ -70,21 +70,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             $stmt = $conn->prepare("INSERT INTO orders (customer_name, total_amount) VALUES (?, ?)");
             $stmt->bind_param("sd", $customer_name, $total_amount);
             $stmt->execute();
-            $order_id = $stmt->insert_id;
+            $order_id = $stmt->insert_id; // Get the auto-incremented order ID
             $stmt->close();
             
             // transaction record
-            $stmt = $conn->prepare("INSERT INTO transactions (order_id, total_amount, currency_code) 
-                                VALUES (?, ?, ?)");
+            $currency_code = $_SESSION['currency'] ?? 'PHP';
+            $stmt = $conn->prepare("INSERT INTO transactions (order_id, total_amount, currency_code) VALUES (?, ?, ?)");
             $stmt->bind_param("ids", $order_id, $total_amount, $currency_code);
             $stmt->execute();
             $stmt->close();
             
+            // Iorderitems
+            $cart_items = $conn->query("SELECT * FROM cart");
+            while ($item = $cart_items->fetch_assoc()) {
+                $stmt = $conn->prepare("INSERT INTO orderitems (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
+                $stmt->bind_param("iiid", $order_id, $item['product_id'], $item['quantity'], $item['price']);
+                $stmt->execute();
+                $stmt->close();
+            }
+            
             // Clear cart
             $conn->query("DELETE FROM cart");
             
+            // Commit transaction
             $conn->commit();
             
+            // Redirect to thank you page
             header("Location: thankyou.php?order_id=$order_id");
             exit;
 

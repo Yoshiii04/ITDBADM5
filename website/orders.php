@@ -10,6 +10,21 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
+// Handle status update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
+    $order_id = $conn->real_escape_string($_POST['order_id']);
+    $new_status = $conn->real_escape_string($_POST['new_status']);
+    
+    $stmt = $conn->prepare("UPDATE orders SET status = ? WHERE order_id = ?");
+    $stmt->bind_param("si", $new_status, $order_id);
+    $stmt->execute();
+    $stmt->close();
+    
+    // Refresh to show updated status
+    header("Location: orders.php?currency=" . urlencode($_GET['currency'] ?? 'PHP'));
+    exit;
+}
+
 // Get selected currency from dropdown
 $currency = isset($_GET['currency']) ? $_GET['currency'] : 'PHP';
 
@@ -31,6 +46,18 @@ $symbols = [
     'KRW' => '₩'
 ];
 $symbol = $symbols[$currency] ?? '₱';
+
+// Fetch orders from database
+$orders = [];
+$query = "SELECT * FROM orders ORDER BY order_date DESC";
+$result = $conn->query($query);
+
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $orders[] = $row;
+    }
+    $result->free();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -43,6 +70,15 @@ $symbol = $symbols[$currency] ?? '₱';
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
   <link rel="stylesheet" href="css/admindash.css" />
+  <style>
+    .status-select {
+      width: 120px;
+      display: inline-block;
+    }
+    .status-form {
+      display: inline-block;
+    }
+  </style>
 </head>
 <body>
 <?php $currentPage = basename($_SERVER['PHP_SELF']); ?>
@@ -75,50 +111,39 @@ $symbol = $symbols[$currency] ?? '₱';
             <th>Date</th>
             <th>Status</th>
             <th>Total (<?= htmlspecialchars($currency) ?>)</th>
-            <th>Action</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          <!-- Static Rows With Currency Conversion -->
-          <tr>
-            <td>#1001</td>
-            <td>Juan Dela Cruz</td>
-            <td>2025-07-12</td>
-            <td><span class="badge badge-success">Completed</span></td>
-            <td><?= $symbol . number_format(1499.00 * $rate, 2) ?></td>
-            <td>
-              <form action="ordersview.php" method="GET">
-                <input type="hidden" name="currency" value="<?= htmlspecialchars($currency) ?>">
-                <button type="submit" class="btn btn-sm btn-primary">View</button>
-              </form>
-            </td>
-          </tr>
-          <tr>
-            <td>#1002</td>
-            <td>Maria Santos</td>
-            <td>2025-07-13</td>
-            <td><span class="badge badge-warning">Pending</span></td>
-            <td><?= $symbol . number_format(2350.00 * $rate, 2) ?></td>
-            <td>
-              <form action="ordersview.php" method="GET">
-                <input type="hidden" name="currency" value="<?= htmlspecialchars($currency) ?>">
-                <button type="submit" class="btn btn-sm btn-primary">View</button>
-              </form>
-            </td>
-          </tr>
-          <tr>
-            <td>#1003</td>
-            <td>Carlos Reyes</td>
-            <td>2025-07-13</td>
-            <td><span class="badge badge-danger">Cancelled</span></td>
-            <td><?= $symbol . number_format(999.00 * $rate, 2) ?></td>
-            <td>
-              <form action="ordersview.php" method="GET">
-                <input type="hidden" name="currency" value="<?= htmlspecialchars($currency) ?>">
-                <button type="submit" class="btn btn-sm btn-primary">View</button>
-              </form>
-            </td>
-          </tr>
+          <?php if (empty($orders)): ?>
+            <tr>
+              <td colspan="6" class="text-center">No orders found</td>
+            </tr>
+          <?php else: ?>
+            <?php foreach ($orders as $order): ?>
+              <tr>
+                <td>#<?= htmlspecialchars($order['order_id']) ?></td>
+                <td><?= htmlspecialchars($order['customer_name']) ?></td>
+                <td><?= htmlspecialchars($order['order_date']) ?></td>
+                <td>
+                  <form method="POST" class="status-form">
+                    <input type="hidden" name="order_id" value="<?= $order['order_id'] ?>">
+                    <select name="new_status" class="form-control form-control-sm status-select" onchange="this.form.submit()">
+                      <option value="Pending" <?= $order['status'] == 'Pending' ? 'selected' : '' ?>>Pending</option>
+                      <option value="Processing" <?= $order['status'] == 'Processing' ? 'selected' : '' ?>>Processing</option>
+                      <option value="Completed" <?= $order['status'] == 'Completed' ? 'selected' : '' ?>>Completed</option>
+                      <option value="Cancelled" <?= $order['status'] == 'Cancelled' ? 'selected' : '' ?>>Cancelled</option>
+                    </select>
+                    <input type="hidden" name="update_status" value="1">
+                  </form>
+                </td>
+                <td><?= $symbol . number_format($order['total_amount'] * $rate, 2) ?></td>
+                <td>
+                  <a href="ordersview.php?order_id=<?= $order['order_id'] ?>&currency=<?= urlencode($currency) ?>" class="btn btn-sm btn-primary">View</a>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          <?php endif; ?>
         </tbody>
       </table>
     </div>
