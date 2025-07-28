@@ -70,7 +70,7 @@ CREATE TABLE `cart` (
 
 LOCK TABLES `cart` WRITE;
 /*!40000 ALTER TABLE `cart` DISABLE KEYS */;
-INSERT INTO `cart` VALUES (3,'Wireless Mouse',599.00,1,5,NULL,'test_session_123');
+INSERT INTO `cart` VALUES (5,'Wireless Mouse',599.00,1,5,NULL,'');
 /*!40000 ALTER TABLE `cart` ENABLE KEYS */;
 UNLOCK TABLES;
 
