@@ -16,5 +16,7 @@
     <li><a href="tables.php" class="<?php echo ($currentPage == 'tables.php') ? 'active' : ''; ?>">Tables</a></li>
     <li><a href="logout.php" class="<?php echo ($currentPage == 'logout.php') ? 'active' : ''; ?>">Logout</a></li>
     <li><a href="admin_auditlogs.php">Audit Logs</a></li>
+    <li><a href="roleassignment.php">Role Assignment</a></li>
+    <li><a href="servicerepair.php">Service and Repair</a></li>
   </ul>
 </aside>
