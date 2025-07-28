@@ -86,8 +86,10 @@ $total = 0;
     <?php include 'header.php'; ?>
     <?php include 'navigation.php'; ?>
 
+    <br><br>
     <div class="container mt-5">
         <h2 class="text-center mb-4">Your Shopping Cart</h2>
+        <br><br>
         <?php if ($cart_items->num_rows > 0): ?>
             <div class="table-responsive">
                 <table class="table table-bordered">
@@ -134,15 +136,15 @@ $total = 0;
                     </tbody>
                 </table>
             </div>
-
+            <br><br>
             <div class="row justify-content-end">
                 <div class="col-md-4">
-                    <h4>Cart Summary</h4>
+                    <h4>Cart Summary</h4><br>
                     <ul class="list-group">
                         <li class="list-group-item">Subtotal: <strong><?= displayPrice($total) ?></strong></li>
                         <li class="list-group-item">Shipping: <strong><?= displayPrice(20) ?></strong></li>
                         <li class="list-group-item">Total: <strong><?= displayPrice($total + 20) ?></strong></li>
-                    </ul>
+                    </ul><br>
                     <form method="POST" action="checkout.php">
                         <button type="submit" class="btn btn-success btn-block mt-3">Proceed to Checkout</button>
                     </form>
