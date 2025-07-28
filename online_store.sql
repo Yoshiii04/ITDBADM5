@@ -345,7 +345,7 @@ CREATE TABLE `products` (
   PRIMARY KEY (`product_id`),
   KEY `category_id` (`category_id`),
   CONSTRAINT `products_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -354,7 +354,7 @@ CREATE TABLE `products` (
 
 LOCK TABLES `products` WRITE;
 /*!40000 ALTER TABLE `products` DISABLE KEYS */;
-INSERT INTO `products` VALUES (5,'Wireless Mouse','Ergonomic wireless mouse',599.00,1,50,'img/product05.png',NULL),(6,'Mechanical Keyboard','RGB mechanical keyboard',2999.00,2,20,'img/product06.png',NULL);
+INSERT INTO `products` VALUES (5,'Wireless Mouse','Ergonomic wireless mouse',599.00,1,50,'img/product05.png',NULL),(6,'Mechanical Keyboard','RGB mechanical keyboard',2999.00,2,20,'img/product06.png',NULL),(11,'Silent Office Keyboard','Low-noise membrane keyboard ideal for office work.',799.00,1,20,'img/product11.png',4.10),(12,'Wireless Gaming Headset','High-fidelity wireless headset with mic and RGB lights.',2599.00,2,12,'img/product12.png',4.60),(13,'UltraWide Monitor 34\"','34-inch ultrawide display, great for multitasking.',13499.00,3,4,'img/product13.png',4.80),(14,'Vertical Ergonomic Mouse','Designed to reduce wrist strain, USB connection.',699.00,4,25,'img/product14.png',4.20),(15,'Noise Cancelling Headphones','Over-ear headphones with active noise cancellation.',3299.00,2,8,'img/product15.png',4.70),(16,'Hot-Swappable Mechanical Keyboard','Customizable mechanical keyboard with RGB and hot-swap support.',2899.00,1,9,'img/product16.png',4.90),(17,'Full HD Gaming Monitor 24\"','144Hz refresh rate and 1ms response time.',7199.00,3,6,'img/product17.png',4.50),(18,'Wireless Charging Mouse','Rechargeable mouse with wireless charging dock.',1399.00,4,10,'img/product18.png',4.40);
 /*!40000 ALTER TABLE `products` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -858,4 +858,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-07-29  1:39:28
+-- Dump completed on 2025-07-29  1:55:51
