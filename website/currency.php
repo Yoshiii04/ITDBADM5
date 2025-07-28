@@ -1,43 +1,31 @@
 <?php
-session_start(); // note cart.php works and admin panel works but drop down cart doesnt work if this is added
+session_start();
 
-// Database connection
-include 'config.php';
+  $servername = "localhost";
+  $username = "root";
+  $password = "";
+  $database = "online_store";
+  
+  $conn = new mysqli($servername, $username, $password, $database);
 
-if ($conn->connect_error) {
-    error_log("Connection failed: " . $conn->connect_error);
-    die("Database connection error. Please try again later.");
+  if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
 // Set or get selected currency
 if (isset($_GET['currency'])) {
-    $_SESSION['currency'] = strtoupper(trim($_GET['currency']));
+    $_SESSION['currency'] = $_GET['currency'];
 } elseif (!isset($_SESSION['currency'])) {
     $_SESSION['currency'] = 'PHP';
 }
+
 $currency = $_SESSION['currency'];
 
 // Get exchange rates from database
 $rates = ['PHP' => 1]; // Default PHP rate
 $result = $conn->query("SELECT currency_code, exchange_rate FROM currencies");
-if (!$result) {
-    error_log("Currency query failed: " . $conn->error);
-    $rates = ['PHP' => 1, 'USD' => 0.017, 'KRW' => 23.5]; // Fallback
-} else {
-    while ($row = $result->fetch_assoc()) {
-        $rates[$row['currency_code']] = floatval($row['exchange_rate']);
-    }
-    if (count($rates) == 1) {
-        error_log("No currencies found in database, using fallback");
-        $rates = ['PHP' => 1, 'USD' => 0.017, 'KRW' => 23.5];
-    }
-}
-
-// Validate selected currency
-if (!isset($rates[$currency])) {
-    error_log("Selected currency $currency not in rates, defaulting to PHP");
-    $_SESSION['currency'] = 'PHP';
-    $currency = 'PHP';
+while ($row = $result->fetch_assoc()) {
+    $rates[$row['currency_code']] = $row['exchange_rate'];
 }
 
 // Make globally accessible
@@ -48,14 +36,23 @@ function displayPrice($basePrice) {
     $currency = $GLOBALS['currency'];
     $rates = $GLOBALS['rates'];
     
+    // Default to PHP if rate not found
     $rate = $rates[$currency] ?? 1;
-    $symbol = match ($currency) {
+    
+    $symbol = match($currency) {
         'USD' => '$',
         'KRW' => '₩',
         default => '₱'
     };
     
-    $converted = floatval($basePrice) * $rate;
-    return $currency === 'KRW' ? $symbol . number_format($converted, 0) : $symbol . number_format($converted, 2);
+    $converted = $basePrice * $rate;
+    
+    // Format differently for KRW (no decimals)
+    if ($currency === 'KRW') {
+        return $symbol . number_format($converted, 0);
+    }
+    
+    return $symbol . number_format($converted, 2);
 }
 ?>
+
