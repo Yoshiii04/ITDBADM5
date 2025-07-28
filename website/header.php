@@ -204,7 +204,7 @@ error_log("Cart data: count={$cartData['count']}, total={$cartData['total']}, it
                                     <h5>SUBTOTAL: <?php echo displayPrice($cartData['total']); ?></h5>
                                 </div>
                                 <div class="cart-btns">
-                                    <a href="cart.php">View Larger Cart</a>
+                                    <a href="cart.php">View Cart</a>
                                     <a href="checkout.php">Checkout <i class="fa fa-arrow-circle-right"></i></a>
                                 </div>
                             </div>
